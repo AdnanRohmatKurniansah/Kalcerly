@@ -67,7 +67,7 @@ Kalcerly menyediakan challenge dan sistem gamifikasi untuk meningkatkan motivasi
 * ✔ Contoh challenge: *Run 50 KM in 30 Days*, *7 Days Movement Streak*, *Cycle 100 KM*.
 * ✔ Penyelesaian challenge memberikan FIT, Achievement, Badge, dan Leaderboard points.
 
-### 7. � Social Feed & Komunitas
+### 7. 📷 Social Feed & Komunitas
 Pengguna dapat membagikan aktivitas yang telah dilakukan ke komunitas fitness Kalcerly.
 * ✔ Post aktivitas otomatis menampilkan jarak, durasi, dan status **Verified Activity**.
 * ✔ Pengguna lain dapat memberikan *Follow*, *Kudos*, *Comment*, dan *Share*.
@@ -93,7 +93,7 @@ Pengguna dapat membagikan aktivitas yang telah dilakukan ke komunitas fitness Ka
 
 ## 📦 Struktur Folder Proyek
 
-### � Frontend (Flutter)
+### Frontend (Flutter)
 ```
 frontend/
 ├── lib/
@@ -124,7 +124,7 @@ frontend/
 └── pubspec.yaml
 ```
 
-### �️ Backend (Express + Bun)
+### Backend (Express + Bun)
 ```
 backend/
 ├── src/
@@ -152,7 +152,7 @@ backend/
 └── .env
 ```
 
-### ⛓️ Smart Contract (Solidity + Foundry)
+### Smart Contract (Solidity + Foundry)
 ```
 contracts/
 ├── src/
