@@ -11,7 +11,7 @@ import { walletRateLimiter } from '../middlewares/rate-limit.middleware'
 
 const router = Router()
 
-// All wallet operations require authentication (PRD: wallet linking hanya oleh authenticated user)
+// All wallet operations require authentication 
 router.use(authenticate)
 
 router.post('/nonce', walletRateLimiter, GenerateNonce)

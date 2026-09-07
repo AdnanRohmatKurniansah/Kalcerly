@@ -15,7 +15,6 @@ export const SetPrimaryWalletSchema = z.object({
   walletId: z.string().uuid('Invalid wallet ID'),
 })
 
-// Legacy camelCase aliases
 export const walletNonceSchema = WalletNonceSchema
 export const walletVerifySchema = WalletVerifySchema
 export const setPrimaryWalletSchema = SetPrimaryWalletSchema

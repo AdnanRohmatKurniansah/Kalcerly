@@ -18,7 +18,7 @@ export const errorResponse = (res: Response, message: string, statusCode = 500, 
 }
 
 export const logError = (error: unknown) => {
-  if (process.env['NODE_ENV'] !== 'production') {
+  if (process.env['BUN_ENV'] !== 'production') {
     console.error(error)
   }
 }

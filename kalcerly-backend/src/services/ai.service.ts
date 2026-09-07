@@ -1,12 +1,15 @@
 import axios from 'axios'
-import { AI_PROVIDER, OPENAI_API_KEY, OPENAI_MODEL, GEMINI_API_KEY, GEMINI_MODEL } from '../config'
+import { AI_BASE_URL, AI_API_KEY, AI_MODEL } from '../config'
 
-export type AIVerificationResult = 'VERIFIED' | 'NEEDS_REVIEW' | 'REJECTED'
+export type AIVerificationResult =
+  | 'VERIFIED'
+  | 'NEEDS_REVIEW'
+  | 'REJECTED'
 
 export interface AIVerificationResponse {
   result: AIVerificationResult
-  confidence: number   // 0.0 - 1.0
-  score: number        // 0.0 - 100.0
+  confidence: number
+  score: number
   reason: string
   provider: string
   model: string
@@ -20,7 +23,6 @@ export interface ActivityVerificationInput {
   startedAt: string
   endedAt: string
   pointCount: number
-  // Sample GPS points for analysis (first, middle, last)
   samplePoints: Array<{
     sequence: number
     latitude: string
@@ -31,222 +33,346 @@ export interface ActivityVerificationInput {
   }>
 }
 
-const VERIFICATION_SYSTEM_PROMPT = `You are a fitness activity verification AI for the Kalcerly app.
-Your job is to analyze activity data (GPS points, speed, distance, duration) to determine if it is genuine.
+const SYSTEM_PROMPT = `
+You are a general fitness activity verification AI for the Kalcerly app.
 
-Rules for each activity type:
-- WALKING: avg speed 0.5–2.5 m/s, max 3.0 m/s
-- RUNNING: avg speed 1.5–6.5 m/s, max 9.0 m/s
-- CYCLING: avg speed 2.0–15.0 m/s, max 20.0 m/s
+Your task is to analyze activity data such as:
+- activity type
+- distance
+- duration
+- average speed
+- GPS points
+- GPS timestamps
+- elevation
+- individual GPS speeds
 
-Red flags for REJECTED:
-- Speed physically impossible for activity type
-- Teleportation (huge distance jump between consecutive points)
-- Duration/distance ratio impossible
-- GPS points show static position for entire activity
+Determine whether the activity is likely genuine or suspicious.
 
-Red flags for NEEDS_REVIEW:
-- Speed slightly above normal range but plausible
-- Very few GPS points relative to duration
-- Inconsistent speed patterns
+Use the following typical speed ranges as supporting signals, NOT as the only verification criteria:
 
-Return ONLY valid JSON with no markdown:
+WALKING:
+- typical average speed: <= 2.5 m/s
+- hard maximum: 3.5 m/s
+
+RUNNING:
+- typical average speed: <= 6.5 m/s
+- hard maximum: 9.0 m/s
+
+CYCLING:
+- typical average speed: <= 15.0 m/s
+- hard maximum: 22.0 m/s
+
+Consider:
+1. Distance and duration consistency.
+2. Average speed.
+3. Individual GPS speed anomalies.
+4. GPS point density.
+5. Timestamp consistency.
+6. Sudden or unrealistic movement.
+7. Overall plausibility of the activity.
+8. Possible GPS spoofing or manipulated activity data.
+
+Decision:
+- VERIFIED: activity appears genuine and consistent.
+- NEEDS_REVIEW: activity has suspicious or inconclusive signals but cannot confidently be rejected.
+- REJECTED: activity contains strong evidence of impossible, manipulated, or highly inconsistent data.
+
+Return ONLY valid JSON.
+
+Required format:
 {
   "result": "VERIFIED" | "NEEDS_REVIEW" | "REJECTED",
-  "confidence": 0.0 to 1.0,
-  "score": 0.0 to 100.0,
-  "reason": "brief explanation in English"
-}`
+  "confidence": 0.0-1.0,
+  "score": 0.0-100.0,
+  "reason": "brief reason"
+}
+`
 
-export class AIService {
-  private isConfigured(): boolean {
-    if (AI_PROVIDER === 'openai') return !!OPENAI_API_KEY
-    if (AI_PROVIDER === 'gemini') return !!GEMINI_API_KEY
-    return false
-  }
-
-  private buildPrompt(input: ActivityVerificationInput): string {
-    const avgSpeedMps = input.durationSeconds > 0
+function buildUserPrompt(input: ActivityVerificationInput): string {
+  const avgSpeed =
+    input.durationSeconds > 0
       ? (input.distanceMeters / input.durationSeconds).toFixed(3)
       : '0'
 
-    return `Verify this ${input.type} activity:
-- Distance: ${input.distanceMeters}m
-- Duration: ${input.durationSeconds}s
-- Average speed: ${avgSpeedMps} m/s
-- Elevation gain: ${input.elevationMeters}m
-- GPS points recorded: ${input.pointCount}
-- Start: ${input.startedAt}
-- End: ${input.endedAt}
+  const points = input.samplePoints
+    .map(
+      (point) =>
+        `seq=${point.sequence}` +
+        ` lat=${point.latitude}` +
+        ` lng=${point.longitude}` +
+        (point.speedMps
+          ? ` spd=${point.speedMps}m/s`
+          : '') +
+        (point.altitudeMeters
+          ? ` alt=${point.altitudeMeters}m`
+          : '') +
+        ` t=${point.timestamp}`
+    )
+    .join('\n')
 
-Sample GPS points (${input.samplePoints.length} of ${input.pointCount}):
-${input.samplePoints.map(p =>
-  `seq=${p.sequence} lat=${p.latitude} lng=${p.longitude}` +
-  (p.speedMps ? ` speed=${p.speedMps}m/s` : '') +
-  (p.altitudeMeters ? ` alt=${p.altitudeMeters}m` : '') +
-  ` t=${p.timestamp}`
-).join('\n')}
+  return `
+Activity Type: ${input.type}
+Distance: ${input.distanceMeters}m
+Duration: ${input.durationSeconds}s
+Average Speed: ${avgSpeed}m/s
+Elevation: ${input.elevationMeters}m
+GPS Points: ${input.pointCount}
+Period: ${input.startedAt} → ${input.endedAt}
 
-Return JSON only.`
+Sample GPS Points (${input.samplePoints.length}/${input.pointCount}):
+${points}
+
+Analyze the activity and return JSON only.
+`
+}
+
+function extractJson(raw: string): string {
+  return raw
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim()
+}
+
+function parseProviderResponse(
+  content: string,
+  providerName: string,
+  modelName: string
+): AIVerificationResponse {
+  const cleaned = extractJson(content)
+
+  const parsed = JSON.parse(cleaned) as {
+    result: AIVerificationResult
+    confidence: number
+    score: number
+    reason: string
   }
 
-  private async verifyWithOpenAI(input: ActivityVerificationInput): Promise<AIVerificationResponse> {
+  if (
+    !['VERIFIED', 'NEEDS_REVIEW', 'REJECTED'].includes(
+      parsed.result
+    )
+  ) {
+    throw new Error(`Invalid result value: ${parsed.result}`)
+  }
+
+  const confidence = Number(parsed.confidence)
+  const score = Number(parsed.score)
+
+  if (
+    !Number.isFinite(confidence) ||
+    confidence < 0 ||
+    confidence > 1
+  ) {
+    throw new Error('Invalid confidence value')
+  }
+
+  if (
+    !Number.isFinite(score) ||
+    score < 0 ||
+    score > 100
+  ) {
+    throw new Error('Invalid score value')
+  }
+
+  return {
+    result: parsed.result,
+    confidence,
+    score,
+    reason: parsed.reason,
+    provider: providerName,
+    model: modelName,
+  }
+}
+
+export class AIService {
+  private async callAI(
+    input: ActivityVerificationInput
+  ): Promise<AIVerificationResponse> {
+    const url = `${AI_BASE_URL.replace(/\/$/, '')}/chat/completions`
+
+    const providerName = new URL(AI_BASE_URL).hostname
+
     const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
+      url,
       {
-        model: OPENAI_MODEL,
+        model: AI_MODEL,
         messages: [
-          { role: 'system', content: VERIFICATION_SYSTEM_PROMPT },
-          { role: 'user', content: this.buildPrompt(input) },
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: 'user',
+            content: buildUserPrompt(input),
+          },
         ],
         temperature: 0.1,
-        max_tokens: 200,
+        max_tokens: 256,
+        response_format: {
+          type: 'json_object',
+        },
       },
       {
         headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          Authorization: `Bearer ${AI_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+        timeout: 20000,
       }
     )
 
-    const content: string = response.data?.choices?.[0]?.message?.content ?? ''
-    const parsed = JSON.parse(content.trim()) as { result: AIVerificationResult; confidence: number; score: number; reason: string }
+    const content =
+      response.data?.choices?.[0]?.message?.content ?? ''
 
-    return {
-      result: parsed.result,
-      confidence: Number(parsed.confidence),
-      score: Number(parsed.score),
-      reason: parsed.reason,
-      provider: 'openai',
-      model: OPENAI_MODEL,
+    if (!content) {
+      throw new Error('AI returned an empty response')
     }
-  }
 
-  private async verifyWithGemini(input: ActivityVerificationInput): Promise<AIVerificationResponse> {
-    const prompt = `${VERIFICATION_SYSTEM_PROMPT}\n\n${this.buildPrompt(input)}`
-
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 15000,
-      }
+    return parseProviderResponse(
+      content,
+      providerName,
+      AI_MODEL
     )
-
-    const content: string =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-
-    // Strip markdown code fences if Gemini wraps response
-    const cleaned = content.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(cleaned) as { result: AIVerificationResult; confidence: number; score: number; reason: string }
-
-    return {
-      result: parsed.result,
-      confidence: Number(parsed.confidence),
-      score: Number(parsed.score),
-      reason: parsed.reason,
-      provider: 'gemini',
-      model: GEMINI_MODEL,
-    }
   }
 
-  /**
-   * Verify a fitness activity using the configured AI provider.
-   * Falls back to rule-based verification if AI is not configured or fails.
-   */
-  async verifyActivity(input: ActivityVerificationInput): Promise<AIVerificationResponse> {
-    if (this.isConfigured()) {
+  private isAIConfigured(): boolean {
+    return Boolean(
+      AI_BASE_URL &&
+      AI_API_KEY &&
+      AI_MODEL
+    )
+  }
+
+  async verifyActivity(
+    input: ActivityVerificationInput
+  ): Promise<AIVerificationResponse> {
+    if (this.isAIConfigured()) {
       try {
-        if (AI_PROVIDER === 'openai') return await this.verifyWithOpenAI(input)
-        if (AI_PROVIDER === 'gemini') return await this.verifyWithGemini(input)
-      } catch (err) {
-        console.error('[AI Verification] Provider failed, falling back to rule-based:', err)
+        return await this.callAI(input)
+      } catch (error) {
+        console.error(
+          '[AI] Verification failed:',
+          error instanceof Error
+            ? error.message
+            : error
+        )
       }
     }
 
-    // Rule-based fallback — always available, no API key needed
     return this.ruleBasedVerification(input)
   }
 
-  /**
-   * Rule-based verification fallback.
-   * Used when AI is not configured or when API call fails.
-   */
-  private ruleBasedVerification(input: ActivityVerificationInput): AIVerificationResponse {
-    const avgSpeedMps = input.durationSeconds > 0
-      ? input.distanceMeters / input.durationSeconds
-      : 0
+  private ruleBasedVerification(
+    input: ActivityVerificationInput
+  ): AIVerificationResponse {
+    const avgSpeedMps =
+      input.durationSeconds > 0
+        ? input.distanceMeters / input.durationSeconds
+        : 0
 
-    const speedLimits: Record<string, { min: number; max: number; hardMax: number }> = {
-      WALKING:  { min: 0.3, max: 2.5,  hardMax: 3.5 },
-      RUNNING:  { min: 0.5, max: 6.5,  hardMax: 9.0 },
-      CYCLING:  { min: 0.5, max: 15.0, hardMax: 22.0 },
+    const limits: Record<
+      ActivityVerificationInput['type'],
+      {
+        max: number
+        hardMax: number
+      }
+    > = {
+      WALKING: {
+        max: 2.5,
+        hardMax: 3.5,
+      },
+
+      RUNNING: {
+        max: 6.5,
+        hardMax: 9.0,
+      },
+
+      CYCLING: {
+        max: 15.0,
+        hardMax: 22.0,
+      },
     }
 
-    const limits = speedLimits[input.type]!
-    const minPointsExpected = Math.floor(input.durationSeconds / 30) // 1 point per 30s minimum
+    const limit = limits[input.type]
 
-    // Hard reject: physically impossible speed
-    if (avgSpeedMps > limits.hardMax) {
+    const minPoints = Math.floor(
+      input.durationSeconds / 30
+    )
+
+    // Impossible average speed
+    if (avgSpeedMps > limit.hardMax) {
       return {
         result: 'REJECTED',
         confidence: 0.98,
         score: 2,
-        reason: `Average speed ${avgSpeedMps.toFixed(2)} m/s exceeds the physical maximum for ${input.type}`,
+        reason:
+          `Average speed ${avgSpeedMps.toFixed(2)} m/s ` +
+          `exceeds physical maximum for ${input.type}`,
         provider: 'rule-based',
         model: 'kalcerly-rules-v1',
       }
     }
 
-    // Hard reject: distance impossible in given time (teleportation)
-    if (avgSpeedMps < 0.05 && input.distanceMeters > 100) {
+    // Distance / duration inconsistency
+    if (
+      avgSpeedMps < 0.05 &&
+      input.distanceMeters > 100
+    ) {
       return {
         result: 'REJECTED',
         confidence: 0.95,
         score: 5,
-        reason: 'Distance and duration are inconsistent — possible GPS spoofing',
+        reason:
+          'Distance and duration are inconsistent — possible GPS spoofing',
         provider: 'rule-based',
         model: 'kalcerly-rules-v1',
       }
     }
 
-    // Needs review: very few GPS points
-    if (input.pointCount < minPointsExpected && input.pointCount < 10) {
+    // Insufficient GPS points
+    if (
+      input.pointCount < minPoints &&
+      input.pointCount < 10
+    ) {
       return {
         result: 'NEEDS_REVIEW',
         confidence: 0.60,
         score: 55,
-        reason: `Only ${input.pointCount} GPS points recorded for a ${input.durationSeconds}s activity — may be incomplete tracking`,
+        reason:
+          `Only ${input.pointCount} GPS points ` +
+          `for ${input.durationSeconds}s activity`,
         provider: 'rule-based',
         model: 'kalcerly-rules-v1',
       }
     }
 
-    // Needs review: speed slightly above normal
-    if (avgSpeedMps > limits.max) {
+    // Above typical speed
+    if (avgSpeedMps > limit.max) {
       return {
         result: 'NEEDS_REVIEW',
         confidence: 0.65,
         score: 60,
-        reason: `Average speed ${avgSpeedMps.toFixed(2)} m/s is above typical range for ${input.type}`,
+        reason:
+          `Average speed ${avgSpeedMps.toFixed(2)} m/s ` +
+          `is above the typical range for ${input.type}`,
         provider: 'rule-based',
         model: 'kalcerly-rules-v1',
       }
     }
 
-    // Verified
-    const confidence = Math.min(0.70 + (input.pointCount / 500) * 0.25, 0.95)
+    const confidence = Math.min(
+      0.70 +
+        (input.pointCount / 500) * 0.25,
+      0.95
+    )
+
     return {
       result: 'VERIFIED',
-      confidence: parseFloat(confidence.toFixed(4)),
-      score: parseFloat((confidence * 100).toFixed(2)),
-      reason: `Activity data is consistent with ${input.type} — speed and GPS data within expected range`,
+      confidence: Number(confidence.toFixed(4)),
+      score: Number((confidence * 100).toFixed(2)),
+      reason:
+        `Activity is consistent with ${input.type} — ` +
+        'speed and GPS data are within expected ranges',
       provider: 'rule-based',
       model: 'kalcerly-rules-v1',
     }

@@ -43,7 +43,7 @@ Setelah aktivitas selesai, data dianalisis oleh AI untuk memastikan validitas ak
 * ✔ Mendeteksi aktivitas yang tidak sesuai, misalnya pola kendaraan saat *Running* dipilih.
 * ✔ Memberikan tiga status: **Verified** ✅, **Needs Review** ⚠️, atau **Rejected** ❌.
 
-### 3. � Activity Proof
+### 3. 🤝 Activity Proof
 Setiap aktivitas yang berhasil diverifikasi akan menghasilkan sebuah **Activity Proof** berupa *unique hash*.
 * ✔ Hash dibuat dari data seperti User ID, Activity Type, Distance, Duration, dan Timestamp.
 * ✔ Data detail GPS tetap tersimpan di backend — blockchain hanya menyimpan *proof/hash*.

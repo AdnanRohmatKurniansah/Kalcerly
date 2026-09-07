@@ -7,9 +7,6 @@ import type { CreateActivityInput, UploadPointsInput } from '../validations/acti
 const activityRepo = new ActivityRepository()
 const aiService = new AIService()
 
-// Activity status lifecycle per PRD:
-// PENDING → VERIFYING → VERIFIED | NEEDS_REVIEW | REJECTED
-
 export class ActivityService {
   async createActivity(userId: string, input: CreateActivityInput) {
     const startedAt = new Date(input.startedAt)
@@ -274,14 +271,8 @@ export class ActivityService {
   }
 }
 
-// ── Helper ──────────────────────────────────────────────────────────────────
-
 import type { ActivityPoint } from '../db/schema/activity-points'
 
-/**
- * Pick a representative sample of GPS points (first, evenly-spaced middle, last).
- * Keeps the token cost low when sending to AI provider.
- */
 function sampleGpsPoints(points: ActivityPoint[], maxSamples: number): ActivityPoint[] {
   if (points.length <= maxSamples) return points
 

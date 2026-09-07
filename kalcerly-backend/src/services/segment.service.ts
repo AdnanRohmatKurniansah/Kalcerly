@@ -67,7 +67,7 @@ export class SegmentService {
 
     // If new personal best, unset previous personal best
     if (isPersonalBest && bestEffort) {
-      await segmentRepo.update(segmentId, {}) // just trigger rank update below
+      await segmentRepo.update(segmentId, {}) 
     }
 
     const effort = await segmentRepo.createEffort({

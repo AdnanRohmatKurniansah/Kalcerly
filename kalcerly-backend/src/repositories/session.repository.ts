@@ -10,6 +10,7 @@ export class SessionRepository {
 
   async findByRefreshTokenHash(refreshTokenHash: string) {
     const [session] = await db
+
       .select()
       .from(sessions)
       .where(

@@ -79,6 +79,10 @@ CONTRACT_FIT_TOKEN=0x...
 CONTRACT_ACTIVITY_PROOF=0x...
 CONTRACT_REWARD_MANAGER=0x...
 CONTRACT_CHALLENGE_MANAGER=0x...
+
+AI_BASE_URL=https://api.groq.com/openai/v1
+AI_API_KEY=gsk_...
+AI_MODEL=llama-3.3-70b-versatile
 ```
 
 ---
@@ -680,15 +684,33 @@ Jika VERIFIED + wallet terhubung → Blockchain proof + FIT Reward
 
 Saat `POST /api/activities/:id/verify` dipanggil, backend langsung menjalankan AI verification dan mengembalikan hasilnya dalam satu request.
 
-**Provider yang didukung (dikonfigurasi via env):**
+**Provider yang didukung — dikonfigurasi via `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`:**
 
-| `AI_PROVIDER` | Keterangan |
+| Provider | `AI_BASE_URL` |
 |---|---|
-| `openai` | GPT-4o-mini atau model lain via `OPENAI_MODEL` |
-| `gemini` | Gemini 1.5 Flash atau model lain via `GEMINI_MODEL` |
-| *(tidak dikonfigurasi)* | Rule-based fallback otomatis |
+| **Groq** | `https://api.groq.com/openai/v1` |
+| **OpenAI** | `https://api.openai.com/v1` |
+| **Together AI** | `https://api.together.xyz/v1` |
+| **Anyscale** | `https://api.endpoints.anyscale.com/v1` |
+| **LM Studio (local)** | `http://localhost:1234/v1` |
+| **Ollama (local)** | `http://localhost:11434/v1` |
+| Semua OpenAI-compatible | custom URL |
 
-**Rule-based fallback** aktif otomatis jika API key tidak tersedia atau provider gagal. Batas kecepatan per activity type:
+Contoh konfigurasi Groq di `.env`:
+```env
+AI_BASE_URL=https://api.groq.com/openai/v1
+AI_API_KEY=gsk_...
+AI_MODEL=llama-3.3-70b-versatile
+```
+
+Selain itu, **Gemini** didukung sebagai provider alternate (format API berbeda) — dikonfigurasi dengan `GEMINI_API_KEY` dan `GEMINI_MODEL`.
+
+**Priority fallback:**
+```
+OpenAI-compatible (AI_API_KEY) → Gemini (GEMINI_API_KEY) → Rule-based fallback
+```
+
+**Rule-based fallback** aktif otomatis jika semua provider tidak dikonfigurasi atau gagal. Batas kecepatan per activity type:
 
 | Type | Normal | Hard Max |
 |---|---|---|

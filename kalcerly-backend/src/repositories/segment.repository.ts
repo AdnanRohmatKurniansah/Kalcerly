@@ -3,8 +3,6 @@ import { db } from '../lib/db'
 import { segments, segmentEfforts } from '../db/schema/index'
 
 export class SegmentRepository {
-  // ── Segments ─────────────────────────────────────────────────────────────────
-
   async create(data: typeof segments.$inferInsert) {
     const [segment] = await db.insert(segments).values(data).returning()
     return segment!
@@ -54,8 +52,6 @@ export class SegmentRepository {
   async delete(id: string) {
     await db.delete(segments).where(eq(segments.id, id))
   }
-
-  // ── Segment Efforts ───────────────────────────────────────────────────────────
 
   async createEffort(data: typeof segmentEfforts.$inferInsert) {
     const [effort] = await db.insert(segmentEfforts).values(data).returning()

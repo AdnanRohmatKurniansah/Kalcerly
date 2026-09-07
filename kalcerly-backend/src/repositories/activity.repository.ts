@@ -8,8 +8,6 @@ import {
 } from '../db/schema/index'
 
 export class ActivityRepository {
-  // ── Activities ──────────────────────────────────────────────────────────────
-
   async create(data: typeof activities.$inferInsert) {
     const [activity] = await db.insert(activities).values(data).returning()
     return activity!
@@ -64,8 +62,6 @@ export class ActivityRepository {
     await db.delete(activities).where(eq(activities.id, id))
   }
 
-  // ── Activity Points (GPS) ────────────────────────────────────────────────────
-
   async createPoints(points: (typeof activityPoints.$inferInsert)[]) {
     if (points.length === 0) return []
     return db.insert(activityPoints).values(points).returning()
@@ -86,8 +82,6 @@ export class ActivityRepository {
       .where(eq(activityPoints.activityId, activityId))
     return Number(row?.count ?? 0)
   }
-
-  // ── Activity Verifications ───────────────────────────────────────────────────
 
   async createVerification(data: typeof activityVerifications.$inferInsert) {
     const [record] = await db.insert(activityVerifications).values(data).returning()
@@ -111,8 +105,6 @@ export class ActivityRepository {
       .returning()
     return record ?? null
   }
-
-  // ── Activity Statistics ──────────────────────────────────────────────────────
 
   async createStatistics(data: typeof activityStatistics.$inferInsert) {
     const [record] = await db.insert(activityStatistics).values(data).returning()

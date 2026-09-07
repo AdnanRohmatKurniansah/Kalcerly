@@ -12,8 +12,6 @@ export const JWT_ACCESS_SECRET = process.env['JWT_ACCESS_SECRET'] ?? ''
 export const JWT_REFRESH_SECRET = process.env['JWT_REFRESH_SECRET'] ?? ''
 export const JWT_ACCESS_EXPIRES_IN = process.env['JWT_ACCESS_EXPIRES_IN'] ?? '15m'
 export const JWT_REFRESH_EXPIRES_IN = process.env['JWT_REFRESH_EXPIRES_IN'] ?? '30d'
-// Legacy alias used by old generateToken.ts
-export const JWT_ACCESS_TOKEN = JWT_ACCESS_SECRET
 
 // Google
 export const GOOGLE_CLIENT_ID = process.env['GOOGLE_CLIENT_ID'] ?? ''
@@ -37,16 +35,14 @@ export const CONTRACT_REWARD_MANAGER = process.env['CONTRACT_REWARD_MANAGER'] ??
 export const CONTRACT_CHALLENGE_MANAGER = process.env['CONTRACT_CHALLENGE_MANAGER'] ?? ''
 
 // App domain (for SIWE)
-export const APP_DOMAIN = process.env['APP_DOMAIN'] ?? 'app.kalcerly.com'
+export const APP_DOMAIN = process.env['APP_DOMAIN'] ?? 'kalcerly.com'
 
-// Cloudinary (optional, legacy)
+// Cloudinary 
 export const CLOUDINARY_CLOUD_NAME = process.env['CLOUDINARY_CLOUD_NAME'] ?? ''
 export const CLOUDINARY_API_KEY = process.env['CLOUDINARY_API_KEY'] ?? ''
 export const CLOUDINARY_API_SECRET = process.env['CLOUDINARY_API_SECRET'] ?? ''
 
-// AI Verification
-export const AI_PROVIDER = process.env['AI_PROVIDER'] ?? 'openai' // openai | gemini
-export const OPENAI_API_KEY = process.env['OPENAI_API_KEY'] ?? ''
-export const OPENAI_MODEL = process.env['OPENAI_MODEL'] ?? 'gpt-4o-mini'
-export const GEMINI_API_KEY = process.env['GEMINI_API_KEY'] ?? ''
-export const GEMINI_MODEL = process.env['GEMINI_MODEL'] ?? 'gemini-1.5-flash'
+// AI Verification 
+export const AI_BASE_URL = process.env['AI_BASE_URL'] ?? 'https://api.openai.com/v1'
+export const AI_API_KEY = process.env['AI_API_KEY'] ?? ''
+export const AI_MODEL = process.env['AI_MODEL'] ?? 'gpt-4o-mini'
