@@ -23,7 +23,7 @@ export const errorMiddleware = (err: unknown, _req: Request, res: Response, _nex
     return res.status(400).json({ success: false, message: err.message })
   }
 
-  if (process.env['BUN_ENV'] !== 'production') {
+  if (process.env['NODE_ENV'] !== 'production') {
     console.error('[Server Error]', err)
   }
 

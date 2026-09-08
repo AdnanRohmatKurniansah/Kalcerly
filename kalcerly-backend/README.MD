@@ -10,7 +10,7 @@ Social fitness platform yang menggabungkan GPS tracking, AI activity verificatio
 
 | Layer | Tech |
 |---|---|
-| Runtime | Bun |
+| Runtime | Node.js |
 | Framework | Express.js + TypeScript |
 | Database | PostgreSQL + Drizzle ORM |
 | Auth | JWT + Google OAuth + Email Verification |
@@ -24,19 +24,19 @@ Social fitness platform yang menggabungkan GPS tracking, AI activity verificatio
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
 # Copy environment file
 cp .env.example .env
 
 # Generate migration
-bun run db:generate
+npm run db:generate
 
 # Apply migration
-bun run db:migrate
+npm run db:migrate
 
 # Development
-bun run dev
+npm run dev
 ```
 
 ---
@@ -45,7 +45,7 @@ bun run dev
 
 ```env
 # App
-BUN_ENV=development
+NODE_ENV=development
 PORT=3000
 BASE_URL=http://localhost:3000
 APP_DOMAIN=app.kalcerly.com

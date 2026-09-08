@@ -1,14 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "noEmit": false,
-    "outDir": "./build",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": false,
-    "types": ["node"]
+    "noEmit": false,
+    "outDir": "./build",
+    "rootDir": "."
   },
-  "include": ["src/**/*", "api/**/*"],
-  "exclude": ["node_modules", "**/*.test.ts", "build"]
+  "exclude": ["node_modules", "dist", "build", ".vercel"]
 }

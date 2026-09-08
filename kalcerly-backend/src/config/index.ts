@@ -2,7 +2,7 @@ import { config } from 'dotenv'
 
 config()
 
-export const BUN_ENV = process.env['BUN_ENV'] ?? 'development'
+export const NODE_ENV = process.env['NODE_ENV'] ?? 'development'
 export const PORT = process.env['PORT'] ?? '3000'
 export const BASE_URL = process.env['BASE_URL'] ?? 'http://localhost:3000'
 export const DATABASE_URL = process.env['DATABASE_URL'] ?? ''
