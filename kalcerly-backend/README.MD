@@ -389,28 +389,31 @@ Authorization: Bearer <access_token>
 
 ---
 
-### PATCH `/api/auth/me`
+### POST `/api/auth/me`
 
 🔒 **Requires Bearer token**
 
-Update profile user. Semua field opsional.
+Update profile user. Menggunakan `multipart/form-data` karena mendukung upload avatar. Semua field opsional.
 
 **Headers**
 ```
 Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
 ```
 
-**Request**
-```json
-{
-  "fullname": "Adnan Baru",
-  "bio": "Saya suka lari pagi.",
-  "dateOfBirth": "1999-05-20",
-  "gender": "male",
-  "location": "Yogyakarta, Indonesia",
-  "isPrivate": false
-}
-```
+**Form fields**
+
+| Field | Type | Keterangan |
+|---|---|---|
+| `fullname` | string | Maks 100 karakter |
+| `bio` | string | Maks 500 karakter |
+| `dateOfBirth` | string | Format `YYYY-MM-DD` |
+| `gender` | string | Maks 20 karakter |
+| `location` | string | Maks 255 karakter |
+| `isPrivate` | `"true"` / `"false"` | Privat atau publik |
+| `avatar` | file (image) | Upload foto profil, maks 5MB |
+
+Jika `avatar` dikirim, file lama di Cloudinary otomatis dihapus dan diganti yang baru.
 
 **Response** `200`
 ```json
@@ -421,7 +424,7 @@ Authorization: Bearer <access_token>
     "id": "uuid",
     "fullname": "Adnan Baru",
     "email": "adnan@example.com",
-    "avatarUrl": null,
+    "avatarUrl": "https://res.cloudinary.com/...",
     "bio": "Saya suka lari pagi.",
     "dateOfBirth": "1999-05-20",
     "gender": "male",
@@ -1222,6 +1225,440 @@ Leaderboard segment — diurutkan berdasarkan waktu tercepat.
     "total": 15
   }
 }
+```
+
+---
+
+## Challenges
+
+Challenge adalah kompetisi fitness berbasis target yang dapat diikuti oleh semua user. Semua endpoint memerlukan Bearer token.
+
+**Challenge types:**
+- `DISTANCE` — total jarak yang harus ditempuh (meter)
+- `DURATION` — total durasi aktivitas (detik)
+- `ACTIVITY_COUNT` — jumlah aktivitas yang harus diselesaikan
+- `STREAK` — jumlah hari berturut-turut beraktivitas
+
+**Business rules:**
+- Hanya challenge yang `isActive = true` dan dalam periode `startAt`–`endAt` yang tampil di list aktif
+- User hanya bisa join challenge yang belum berakhir (`endAt > now`)
+- Satu user tidak bisa join challenge yang sama dua kali — UNIQUE `(challenge_id, user_id)`
+- User tidak bisa leave challenge yang sudah `completedAt`
+- Progress hanya bisa ditambahkan dari activity berstatus `VERIFIED`
+- Activity harus dilakukan dalam periode challenge (`startedAt` antara `startAt` dan `endAt`)
+- Satu activity hanya bisa digunakan sekali per challenge — UNIQUE `(challenge_id, activity_id)` di `challenge_activity_usages`
+- Challenge selesai otomatis (`completedAt` terisi) saat target tercapai
+
+**Progress calculation per type:**
+
+| Type | Sumber data | Field yang diupdate |
+|---|---|---|
+| `DISTANCE` | `activity.distanceMeters` | `progressDistanceMeters` |
+| `DURATION` | `activity.durationSeconds` | `progressDurationSeconds` |
+| `ACTIVITY_COUNT` | +1 per activity | `progressActivities` |
+| `STREAK` | +1 per activity | `currentStreak` |
+
+---
+
+### POST `/api/challenges`
+
+🔒 **Requires Bearer token**
+
+Buat challenge baru. Creator otomatis menjadi `creatorId`.
+
+**Request**
+```json
+{
+  "name": "Run 50km in December",
+  "description": "Complete 50km of running in December",
+  "type": "DISTANCE",
+  "targetDistanceMeters": 50000,
+  "startAt": "2026-12-01T00:00:00.000Z",
+  "endAt": "2026-12-31T23:59:59.000Z"
+}
+```
+
+Field wajib: `name`, `type`, `startAt`, `endAt`, dan target sesuai type:
+- `DISTANCE` → `targetDistanceMeters`
+- `DURATION` → `targetDurationSeconds`
+- `ACTIVITY_COUNT` → `targetActivities`
+- `STREAK` → `targetStreakDays`
+
+`endAt` harus setelah `startAt`.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Challenge created",
+  "data": {
+    "id": "uuid",
+    "name": "Run 50km in December",
+    "type": "DISTANCE",
+    "targetDistanceMeters": 50000,
+    "startAt": "2026-12-01T00:00:00.000Z",
+    "endAt": "2026-12-31T23:59:59.000Z",
+    "isActive": true
+  }
+}
+```
+
+---
+
+### GET `/api/challenges`
+
+🔒 **Requires Bearer token**
+
+List challenge yang sedang aktif (isActive = true dan dalam periode saat ini).
+
+**Query params:** `page` (default 1), `limit` (default 20, max 100)
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Challenges retrieved",
+  "data": [...],
+  "total": 10,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 1
+}
+```
+
+---
+
+### GET `/api/challenges/me`
+
+🔒 **Requires Bearer token**
+
+List challenge yang diikuti oleh user yang sedang login, diurutkan berdasarkan `joinedAt` terbaru.
+
+**Query params:** `page`, `limit`
+
+**Response** `200` — array of `challenge_participants` records
+
+---
+
+### GET `/api/challenges/:id`
+
+🔒 **Requires Bearer token**
+
+Detail satu challenge, termasuk `participantCount` dan status partisipasi user saat ini (`myParticipation`).
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Challenge retrieved",
+  "data": {
+    "id": "uuid",
+    "name": "Run 50km in December",
+    "type": "DISTANCE",
+    "targetDistanceMeters": 50000,
+    "isActive": true,
+    "participantCount": 42,
+    "myParticipation": {
+      "id": "uuid",
+      "progressDistanceMeters": 12000,
+      "completedAt": null
+    }
+  }
+}
+```
+
+`myParticipation` bernilai `null` jika user belum join.
+
+---
+
+### POST `/api/challenges/:id/join`
+
+🔒 **Requires Bearer token**
+
+Bergabung ke challenge.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Joined challenge successfully",
+  "data": {
+    "id": "uuid",
+    "challengeId": "uuid",
+    "userId": "uuid",
+    "progressDistanceMeters": 0,
+    "joinedAt": "2026-12-01T08:00:00.000Z"
+  }
+}
+```
+
+**Error** `409` — sudah join sebelumnya
+```json
+{ "success": false, "message": "Already joined this challenge", "errors": "ALREADY_JOINED" }
+```
+
+**Error** `400` — challenge sudah berakhir
+```json
+{ "success": false, "message": "Challenge has already ended", "errors": "CHALLENGE_ENDED" }
+```
+
+---
+
+### DELETE `/api/challenges/:id/leave`
+
+🔒 **Requires Bearer token**
+
+Keluar dari challenge. Tidak bisa leave challenge yang sudah `completedAt`.
+
+**Response** `200`
+```json
+{ "success": true, "message": "Left challenge successfully" }
+```
+
+**Error** `400` — challenge sudah selesai
+```json
+{ "success": false, "message": "Cannot leave a completed challenge", "errors": "CHALLENGE_ALREADY_COMPLETED" }
+```
+
+---
+
+### POST `/api/challenges/:id/progress`
+
+🔒 **Requires Bearer token**
+
+Tambahkan progress dari activity yang sudah `VERIFIED`. Backend menghitung contribution otomatis berdasarkan challenge type dan mendeteksi completion.
+
+**Request**
+```json
+{
+  "activityId": "uuid"
+}
+```
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Progress added",
+  "data": {
+    "participant": {
+      "id": "uuid",
+      "progressDistanceMeters": 22000,
+      "completedAt": null
+    },
+    "progressAmount": 10000,
+    "isCompleted": false
+  }
+}
+```
+
+Jika target tercapai, `isCompleted` bernilai `true` dan `participant.completedAt` terisi.
+
+**Error** `400` — activity bukan VERIFIED
+```json
+{ "success": false, "message": "Only VERIFIED activities can contribute to challenge progress", "errors": "ACTIVITY_NOT_VERIFIED" }
+```
+
+**Error** `400` — activity di luar periode challenge
+```json
+{ "success": false, "message": "Activity was not performed during the challenge period", "errors": "ACTIVITY_OUTSIDE_PERIOD" }
+```
+
+**Error** `409` — activity sudah digunakan di challenge ini
+```json
+{ "success": false, "message": "Activity has already been used for this challenge", "errors": "ACTIVITY_ALREADY_USED" }
+```
+
+---
+
+### GET `/api/challenges/:id/participants`
+
+🔒 **Requires Bearer token**
+
+List participants challenge, diurutkan berdasarkan `progressDistanceMeters` tertinggi.
+
+**Query params:** `page`, `limit`
+
+**Response** `200` — array of `challenge_participants` records dengan pagination
+
+---
+
+## Goals
+
+Goal adalah target fitness personal per periode waktu. Semua endpoint memerlukan Bearer token dan goal hanya bisa diakses oleh owner-nya.
+
+**Goal types:** `DISTANCE`, `DURATION`, `ACTIVITY_COUNT`, `ELEVATION`
+
+**Periods:** `WEEKLY`, `MONTHLY`, `YEARLY`
+
+**Business rules:**
+- Goal bersifat privat — user hanya bisa melihat dan mengelola goal miliknya sendiri
+- `endDate` harus setelah `startDate` (format `YYYY-MM-DD`)
+- Progress hanya bisa ditambahkan dari activity berstatus `VERIFIED`
+- Activity harus dilakukan dalam periode goal (`startDate` ≤ `activityDate` ≤ `endDate`)
+- Goal selesai otomatis (`completedAt` terisi) saat `currentValue >= targetValue`
+- Tidak bisa menambah progress ke goal yang sudah `completedAt`
+
+**Progress calculation per type:**
+
+| Type | Sumber data |
+|---|---|
+| `DISTANCE` | `activity.distanceMeters` |
+| `DURATION` | `activity.durationSeconds` |
+| `ACTIVITY_COUNT` | +1 per activity |
+| `ELEVATION` | `activity.elevationMeters` |
+
+---
+
+### POST `/api/goals`
+
+🔒 **Requires Bearer token**
+
+Buat goal baru.
+
+**Request**
+```json
+{
+  "type": "DISTANCE",
+  "period": "MONTHLY",
+  "targetValue": 100000,
+  "startDate": "2026-12-01",
+  "endDate": "2026-12-31"
+}
+```
+
+Field wajib: `type`, `period`, `targetValue`, `startDate`, `endDate`.
+
+`targetValue` minimal 1. `endDate` harus setelah `startDate`.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Goal created",
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "type": "DISTANCE",
+    "period": "MONTHLY",
+    "targetValue": 100000,
+    "currentValue": 0,
+    "startDate": "2026-12-01",
+    "endDate": "2026-12-31",
+    "completedAt": null
+  }
+}
+```
+
+---
+
+### GET `/api/goals`
+
+🔒 **Requires Bearer token**
+
+List semua goal milik user, diurutkan terbaru.
+
+**Query params:** `page` (default 1), `limit` (default 20, max 100)
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Goals retrieved",
+  "data": [...],
+  "total": 5,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 1
+}
+```
+
+---
+
+### GET `/api/goals/:id`
+
+🔒 **Requires Bearer token**
+
+Detail satu goal. Hanya bisa diakses oleh owner.
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Goal retrieved",
+  "data": {
+    "id": "uuid",
+    "type": "DISTANCE",
+    "period": "MONTHLY",
+    "targetValue": 100000,
+    "currentValue": 35000,
+    "startDate": "2026-12-01",
+    "endDate": "2026-12-31",
+    "completedAt": null
+  }
+}
+```
+
+---
+
+### DELETE `/api/goals/:id`
+
+🔒 **Requires Bearer token** — hanya owner
+
+Hapus goal.
+
+**Response** `200`
+```json
+{ "success": true, "message": "Goal deleted" }
+```
+
+---
+
+### POST `/api/goals/:id/progress`
+
+🔒 **Requires Bearer token**
+
+Tambahkan progress dari activity yang sudah `VERIFIED`. Backend menghitung contribution otomatis berdasarkan goal type dan mendeteksi completion.
+
+**Request**
+```json
+{
+  "activityId": "uuid"
+}
+```
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Goal progress updated",
+  "data": {
+    "goal": {
+      "id": "uuid",
+      "currentValue": 45000,
+      "completedAt": null
+    },
+    "contribution": 10000,
+    "isCompleted": false
+  }
+}
+```
+
+Jika target tercapai, `isCompleted` bernilai `true` dan `goal.completedAt` terisi.
+
+**Error** `400` — activity bukan VERIFIED
+```json
+{ "success": false, "message": "Only VERIFIED activities can contribute to goal progress", "errors": "ACTIVITY_NOT_VERIFIED" }
+```
+
+**Error** `400` — activity di luar periode goal
+```json
+{ "success": false, "message": "Activity was not performed during the goal period", "errors": "ACTIVITY_OUTSIDE_PERIOD" }
+```
+
+**Error** `400` — goal sudah selesai
+```json
+{ "success": false, "message": "Goal is already completed", "errors": "GOAL_ALREADY_COMPLETED" }
 ```
 
 ---

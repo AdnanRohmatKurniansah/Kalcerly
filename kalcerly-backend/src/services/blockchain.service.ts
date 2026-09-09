@@ -15,7 +15,6 @@ import { blockchainTransactions } from '../db/schema/index'
 import { eq } from 'drizzle-orm'
 import { AppError } from '../utils/error'
 
-// Minimal ABIs for the 4 Kalcerly contracts
 const ACTIVITY_PROOF_ABI = parseAbi([
   'function recordProof(bytes32 activityHash, address wallet, uint256 timestamp) external',
   'function getProof(bytes32 activityHash) external view returns (address wallet, uint256 timestamp, bool exists)',

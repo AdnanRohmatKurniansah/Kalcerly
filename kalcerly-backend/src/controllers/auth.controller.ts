@@ -126,11 +126,15 @@ export const UpdateProfile = async (req: Request, res: Response, next: NextFunct
   try {
     const userId = (req as AuthRequest).userId
     if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED')
+
     const validation = UpdateProfileSchema.safeParse(req.body)
     if (!validation.success) {
       throw new AppError('Validation failed', 400, validation.error.issues)
     }
-    const updated = await authService.updateProfile(userId, validation.data)
+
+    const avatarFile = (req as Request & { file?: Express.Multer.File }).file
+
+    const updated = await authService.updateProfile(userId, validation.data, avatarFile)
     return successResponse(res, 'Profile updated successfully', updated)
   } catch (err) {
     next(err)

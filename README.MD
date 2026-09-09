@@ -80,7 +80,7 @@ Pengguna dapat membagikan aktivitas yang telah dilakukan ke komunitas fitness Ka
 | Kategori | Teknologi | Deskripsi |
 | :--- | :--- | :--- |
 | **Mobile** | Flutter | Cross-platform mobile application (Android & iOS). |
-| **Backend Runtime** | Bun | JavaScript/TypeScript runtime yang cepat dan efisien. |
+| **Backend Runtime** | NodeJs | JavaScript/TypeScript runtime yang cepat dan efisien. |
 | **Backend** | Express.js | REST API dan business logic utama. |
 | **AI** | AI/ML Model | Engine verifikasi aktivitas pengguna. |
 | **Blockchain SDK** | Viem | Interaksi dengan EVM-compatible blockchain. |
@@ -124,7 +124,7 @@ frontend/
 └── pubspec.yaml
 ```
 
-### Backend (Express + Bun)
+### Backend (Express + NodeJs)
 ```
 backend/
 ├── src/
@@ -177,9 +177,9 @@ contracts/
 
 ## 🔧 Cara Instalasi & Menjalankan Proyek
 
-Pastikan Anda telah menginstal **Flutter & Dart**, **Bun**, **Foundry**, dan **Git**.
+Pastikan Anda telah menginstal **Flutter & Dart**, **NodeJs**, **Foundry**, dan **Git**.
 
-### A. Menjalankan Backend (Express + Bun)
+### A. Menjalankan Backend (Express + NodeJs)
 
 1.  **Arahkan ke Direktori Backend:**
     ```bash

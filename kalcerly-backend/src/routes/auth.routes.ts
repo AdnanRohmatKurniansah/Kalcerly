@@ -12,6 +12,7 @@ import {
 } from '../controllers/auth.controller'
 import { authenticate } from '../middlewares/auth.middleware'
 import { authRateLimiter, emailVerificationRateLimiter } from '../middlewares/rate-limit.middleware'
+import { upload } from '../middlewares/upload.middleware'
 
 const router = Router()
 
@@ -26,6 +27,6 @@ router.post('/google', authRateLimiter, GoogleAuth)
 router.post('/refresh', Refresh)
 router.post('/logout', authenticate, Logout)
 router.get('/me', authenticate, GetMe)
-router.patch('/me', authenticate, UpdateProfile)
+router.post('/me', authenticate, upload.single('avatar'), UpdateProfile)
 
 export default router

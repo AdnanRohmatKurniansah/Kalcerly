@@ -4,6 +4,7 @@ import { EmailVerificationService } from './email-verification.service'
 import { TokenService } from './token.service'
 import { SessionService } from './session.service'
 import { UserRepository } from '../repositories/user.repository'
+import { deleteFromCloudinary, uploadToCloudinary } from '../lib/cloudinary'
 
 const userRepo = new UserRepository()
 
@@ -128,14 +129,30 @@ export class AuthService {
       gender?: string
       location?: string
       isPrivate?: boolean
-    }
+    },
+    avatarFile?: Express.Multer.File
   ) {
     const user = await userRepo.findById(userId)
     if (!user) {
       throw new AppError('User not found', 404, 'USER_NOT_FOUND')
     }
 
-    const updated = await userRepo.update(userId, data)
+    let avatarUrl = user.avatarUrl
+
+    if (avatarFile) {
+      const newAvatarUrl = await uploadToCloudinary(avatarFile, 'avatars')
+      if (user.avatarUrl) {
+        await deleteFromCloudinary(user.avatarUrl)
+      }
+
+      avatarUrl = newAvatarUrl
+    }
+
+    const updated = await userRepo.update(userId, {
+      ...data,
+      ...(avatarFile ? { avatarUrl } : {}),
+    })
+
     if (!updated) {
       throw new AppError('Failed to update profile', 500, 'UPDATE_FAILED')
     }

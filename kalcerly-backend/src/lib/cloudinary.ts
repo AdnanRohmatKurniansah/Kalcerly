@@ -1,6 +1,6 @@
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary'
 
-const bucket = 'storage_itc_times'
+const bucket = 'storage_kalcerly'
 
 export const configureCloudinary = () => {
   cloudinary.config({

@@ -76,7 +76,7 @@ Backend bertanggung jawab terhadap:
 
 **## Backend**
 
-\* Bun
+\* NodeJs
 
 \* TypeScript
 

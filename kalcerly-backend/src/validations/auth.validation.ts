@@ -33,7 +33,10 @@ export const UpdateProfileSchema = z.object({
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format must be YYYY-MM-DD').optional(),
   gender: z.string().max(20, 'Max 20 characters').optional(),
   location: z.string().max(255, 'Max 255 characters').optional(),
-  isPrivate: z.boolean().optional(),
+  isPrivate: z
+    .union([z.boolean(), z.string()])
+    .transform((val) => (typeof val === 'string' ? val === 'true' : val))
+    .optional(),
 })
 
 export const registerSchema = RegisterSchema

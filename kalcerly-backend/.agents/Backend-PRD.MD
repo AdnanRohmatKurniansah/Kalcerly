@@ -54,7 +54,7 @@ Backend bertanggung jawab terhadap:
 
 ## Backend
 
-* Bun
+* NodeJs
 * TypeScript
 * Express.js
 * PostgreSQL

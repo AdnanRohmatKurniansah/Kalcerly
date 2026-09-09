@@ -5,6 +5,8 @@ import walletRoutes from '../routes/wallet.routes'
 import activityRoutes from '../routes/activity.routes'
 import routeRoutes from '../routes/route.routes'
 import segmentRoutes from '../routes/segment.routes'
+import challengeRoutes from '../routes/challenge.routes'
+import goalRoutes from '../routes/goal.routes'
 import { errorMiddleware } from '../middlewares/error.middleware'
 
 const createServer = (): Application => {
@@ -35,6 +37,8 @@ const createServer = (): Application => {
   app.use('/api/activities', activityRoutes)
   app.use('/api/routes', routeRoutes)
   app.use('/api/segments', segmentRoutes)
+  app.use('/api/challenges', challengeRoutes)
+  app.use('/api/goals', goalRoutes)
 
   app.use(errorMiddleware)
 
