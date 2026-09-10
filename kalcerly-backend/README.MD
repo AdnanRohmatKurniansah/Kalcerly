@@ -1663,6 +1663,887 @@ Jika target tercapai, `isCompleted` bernilai `true` dan `goal.completedAt` teris
 
 ---
 
+## Rewards & Transactions
+
+Rewards adalah FIT Token yang diperoleh user dari aktivitas yang sudah `VERIFIED`. Semua endpoint memerlukan Bearer token.
+
+**Blockchain reward flow:**
+```
+VERIFIED Activity
+       ↓
+POST /api/rewards/activities/:activityId
+       ↓
+Check duplicate (rewards.activityId UNIQUE)
+       ↓
+Find primary wallet
+       ↓
+No wallet? → status = PENDING (reward tersimpan, diproses saat wallet terhubung)
+       ↓
+Wallet found? → status = PROCESSING
+       ↓
+ActivityProof.sol  ← recordProof(activityHash, walletAddress, timestamp)
+       ↓
+RewardManager.sol  ← rewardActivity(walletAddress, amountBaseUnits)
+       ↓
+FITToken.sol       ← token dikirim ke primary wallet
+       ↓
+reward.status = COMPLETED, rewardedAt terisi
+```
+
+**Reward status:**
+
+| Status | Keterangan |
+|---|---|
+| `PENDING` | Activity verified tapi belum ada wallet |
+| `PROCESSING` | Transaksi blockchain sedang berjalan |
+| `COMPLETED` | FIT reward berhasil dikirim ke wallet |
+| `FAILED` | Transaksi blockchain gagal |
+
+**Transaction status:**
+
+| Status | Keterangan |
+|---|---|
+| `PENDING` | Record dibuat, belum dikirim ke blockchain |
+| `SUBMITTED` | Tx hash diterima, menunggu konfirmasi |
+| `CONFIRMED` | Tx terkonfirmasi on-chain |
+| `FAILED` | Tx gagal atau reverted |
+
+**Business rules:**
+- Reward tidak bisa dibuat dua kali untuk activity yang sama — UNIQUE `activity_id` di tabel `rewards`
+- Hanya activity berstatus `VERIFIED` yang eligible
+- Activity harus memiliki `activityHash` (di-generate saat `POST /api/activities/:id/verify`)
+- Reward membutuhkan primary wallet; tanpa wallet reward disimpan dengan status `PENDING`
+- Daily reward cap tracking tersimpan di `reward_daily_limits` — smart contract tetap menjadi authority on-chain
+- Hanya 4 smart contract yang digunakan: `FITToken`, `ActivityProof`, `RewardManager`, `ChallengeManager`
+
+---
+
+### POST `/api/rewards/activities/:activityId`
+
+🔒 **Requires Bearer token**
+
+Proses reward untuk activity yang sudah `VERIFIED`. Jika reward sudah ada, mengembalikan record yang ada (idempotent).
+
+**Response** `200` — wallet tersedia, reward diproses
+```json
+{
+  "success": true,
+  "message": "Reward processed",
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "activityId": "uuid",
+    "walletId": "uuid",
+    "rewardType": "ACTIVITY",
+    "amountBaseUnits": "10000000000000000000",
+    "status": "COMPLETED",
+    "contractAddress": "0x...",
+    "transactionId": "uuid",
+    "rewardedAt": "2026-09-07T10:00:00.000Z"
+  }
+}
+```
+
+**Response** `200` — belum ada wallet, reward ditahan
+```json
+{
+  "success": true,
+  "message": "Reward processed",
+  "data": {
+    "id": "uuid",
+    "status": "PENDING",
+    "amountBaseUnits": "10000000000000000000",
+    "walletId": null
+  }
+}
+```
+
+**Error** `400` — activity belum VERIFIED
+```json
+{ "success": false, "message": "Only VERIFIED activities are eligible for rewards", "errors": "ACTIVITY_NOT_VERIFIED" }
+```
+
+**Error** `400` — activity hash belum ada
+```json
+{ "success": false, "message": "Activity hash is missing", "errors": "MISSING_ACTIVITY_HASH" }
+```
+
+---
+
+### GET `/api/rewards/activities/:activityId`
+
+🔒 **Requires Bearer token**
+
+Cek status reward untuk activity tertentu. Mengembalikan `null` jika belum ada reward.
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Reward retrieved",
+  "data": {
+    "id": "uuid",
+    "status": "COMPLETED",
+    "amountBaseUnits": "10000000000000000000",
+    "rewardedAt": "2026-09-07T10:00:00.000Z"
+  }
+}
+```
+
+---
+
+### GET `/api/rewards`
+
+🔒 **Requires Bearer token**
+
+Riwayat semua reward milik user, diurutkan terbaru.
+
+**Query params:** `page` (default 1), `limit` (default 20, max 100)
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Rewards retrieved",
+  "data": [...],
+  "total": 8,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 1
+}
+```
+
+---
+
+### GET `/api/rewards/balance`
+
+🔒 **Requires Bearer token**
+
+Ambil saldo FIT Token dari primary wallet on-chain via `FITToken.sol`.
+
+**Response** `200` — wallet tersedia
+```json
+{
+  "success": true,
+  "message": "FIT balance retrieved",
+  "data": {
+    "address": "0xabc123...",
+    "balance": "50000000000000000000",
+    "hasWallet": true
+  }
+}
+```
+
+**Response** `200` — belum ada wallet
+```json
+{
+  "success": true,
+  "message": "FIT balance retrieved",
+  "data": {
+    "address": null,
+    "balance": "0",
+    "hasWallet": false
+  }
+}
+```
+
+---
+
+### GET `/api/rewards/transactions`
+
+🔒 **Requires Bearer token**
+
+Riwayat semua blockchain transactions milik user, diurutkan terbaru. Mencakup semua tipe: `CREATE_ACTIVITY_PROOF`, `REWARD_ACTIVITY`, `COMPLETE_CHALLENGE`.
+
+**Query params:** `page` (default 1), `limit` (default 20, max 100)
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Transactions retrieved",
+  "data": [
+    {
+      "id": "uuid",
+      "type": "REWARD_ACTIVITY",
+      "chainId": 97,
+      "contractAddress": "0x...",
+      "functionName": "rewardActivity",
+      "transactionHash": "0xabc...",
+      "blockNumber": 12345678,
+      "status": "CONFIRMED",
+      "submittedAt": "2026-09-07T10:00:00.000Z",
+      "confirmedAt": "2026-09-07T10:00:05.000Z"
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 1
+}
+```
+
+---
+
+## Social
+
+Social domain mencakup follow/unfollow antar user, activity posts, kudos, comments, dan feed. Semua endpoint memerlukan Bearer token.
+
+**Business rules:**
+- User tidak bisa follow dirinya sendiri
+- Satu user hanya bisa follow user yang sama satu kali — UNIQUE `(follower_id, following_id)`
+- Satu user hanya bisa memberi kudos pada post yang sama satu kali — UNIQUE `(user_id, post_id)`
+- Hanya owner post yang bisa edit atau hapus post-nya
+- Hanya owner comment yang bisa edit atau hapus comment-nya
+- Post visibility: `PUBLIC` (siapa saja), `FOLLOWERS` (hanya follower + owner), `PRIVATE` (hanya owner)
+- Post harus punya `content` atau `activityId` — tidak boleh keduanya kosong
+- Feed menampilkan post dari user yang di-follow + post sendiri
+
+**Post visibility rules:**
+
+| Visibility | Siapa yang bisa lihat |
+|---|---|
+| `PUBLIC` | Semua authenticated user |
+| `FOLLOWERS` | Owner + user yang follow owner |
+| `PRIVATE` | Owner saja |
+
+---
+
+### GET `/api/social/feed`
+
+🔒 **Requires Bearer token**
+
+Ambil feed — post dari user yang di-follow + post sendiri, diurutkan terbaru. Post `FOLLOWERS` dari user yang di-follow tetap tampil. Post `PRIVATE` hanya milik sendiri yang tampil.
+
+**Query params:** `page` (default 1), `limit` (default 20, max 100)
+
+**Response** `200`
+```json 
+{
+  "success": true,
+  "message": "Feed retrieved",
+  "data": [
+    {
+      "id": "uuid",
+      "userId": "uuid",
+      "activityId": "uuid",
+      "content": "Great run this morning!",
+      "visibility": "PUBLIC",
+      "createdAt": "2026-09-07T07:00:00.000Z"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 3
+}
+```
+
+---
+
+### POST `/api/social/posts`
+
+🔒 **Requires Bearer token**
+
+Buat post baru. Harus memiliki `content` atau `activityId` (atau keduanya).
+
+**Request**
+```json
+{
+  "content": "Just finished a 10km run!",
+  "activityId": "uuid",
+  "visibility": "PUBLIC"
+}
+```
+
+`visibility`: `PUBLIC` (default), `FOLLOWERS`, atau `PRIVATE`.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Post created",
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "activityId": "uuid",
+    "content": "Just finished a 10km run!",
+    "visibility": "PUBLIC",
+    "createdAt": "2026-09-07T07:00:00.000Z"
+  }
+}
+```
+
+---
+
+### GET `/api/social/posts/:id`
+
+🔒 **Requires Bearer token**
+
+Ambil detail post beserta `kudoCount`, `commentCount`, dan `hasKudo` (apakah requester sudah memberi kudos).
+
+Post `PRIVATE` hanya bisa diakses owner. Post `FOLLOWERS` hanya bisa diakses owner + follower-nya.
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Post retrieved",
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "content": "Great run!",
+    "visibility": "PUBLIC",
+    "kudoCount": 12,
+    "commentCount": 3,
+    "hasKudo": false
+  }
+}
+```
+
+**Error** `404` — post tidak ditemukan atau tidak berhak mengakses
+```json
+{ "success": false, "message": "Post not found", "errors": "POST_NOT_FOUND" }
+```
+
+---
+
+### GET `/api/social/users/:userId/posts`
+
+🔒 **Requires Bearer token**
+
+List post milik user tertentu. Visibility difilter: non-owner hanya lihat `PUBLIC` dan `FOLLOWERS` (jika following).
+
+**Query params:** `page`, `limit`
+
+---
+
+### PATCH `/api/social/posts/:id`
+
+🔒 **Requires Bearer token** — hanya owner post
+
+Update `content` atau `visibility`.
+
+**Request**
+```json
+{
+  "content": "Updated content",
+  "visibility": "FOLLOWERS"
+}
+```
+
+**Error** `403` — bukan owner
+```json
+{ "success": false, "message": "You do not have permission to edit this post", "errors": "FORBIDDEN" }
+```
+
+---
+
+### DELETE `/api/social/posts/:id`
+
+🔒 **Requires Bearer token** — hanya owner post
+
+**Error** `403` — bukan owner
+```json
+{ "success": false, "message": "You do not have permission to delete this post", "errors": "FORBIDDEN" }
+```
+
+---
+
+### POST `/api/social/users/:userId/follow`
+
+🔒 **Requires Bearer token**
+
+Follow user lain.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "User followed",
+  "data": {
+    "id": "uuid",
+    "followerId": "uuid",
+    "followingId": "uuid",
+    "createdAt": "2026-09-07T08:00:00.000Z"
+  }
+}
+```
+
+**Error** `400` — self follow
+```json
+{ "success": false, "message": "You cannot follow yourself", "errors": "SELF_FOLLOW" }
+```
+
+**Error** `409` — sudah following
+```json
+{ "success": false, "message": "Already following this user", "errors": "ALREADY_FOLLOWING" }
+```
+
+---
+
+### DELETE `/api/social/users/:userId/follow`
+
+🔒 **Requires Bearer token**
+
+Unfollow user.
+
+**Error** `404` — tidak sedang following
+```json
+{ "success": false, "message": "You are not following this user", "errors": "NOT_FOLLOWING" }
+```
+
+---
+
+### GET `/api/social/users/:userId/followers`
+
+🔒 **Requires Bearer token**
+
+List followers dari user tertentu, diurutkan terbaru.
+
+**Query params:** `page`, `limit`
+
+**Response** `200` — array of follow records dengan pagination
+
+---
+
+### GET `/api/social/users/:userId/following`
+
+🔒 **Requires Bearer token**
+
+List user yang di-follow oleh user tertentu.
+
+**Query params:** `page`, `limit`
+
+---
+
+### POST `/api/social/posts/:id/kudos`
+
+🔒 **Requires Bearer token**
+
+Beri kudos pada post. Idempoten berdasarkan `(userId, postId)`.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Kudos given",
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "postId": "uuid"
+  }
+}
+```
+
+**Error** `409` — sudah memberi kudos
+```json
+{ "success": false, "message": "Already given kudos to this post", "errors": "ALREADY_KUDOED" }
+```
+
+---
+
+### DELETE `/api/social/posts/:id/kudos`
+
+🔒 **Requires Bearer token**
+
+Hapus kudos dari post.
+
+**Error** `404` — belum memberi kudos
+```json
+{ "success": false, "message": "You have not given kudos to this post", "errors": "KUDO_NOT_FOUND" }
+```
+
+---
+
+### POST `/api/social/posts/:id/comments`
+
+🔒 **Requires Bearer token**
+
+Tambah komentar pada post. Mendukung reply via `parentCommentId`.
+
+**Request**
+```json
+{
+  "content": "Great effort!",
+  "parentCommentId": "uuid"
+}
+```
+
+`parentCommentId` opsional — diisi untuk reply ke komentar lain. Harus berupa UUID valid dan komentar tersebut harus berada pada post yang sama.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Comment created",
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "postId": "uuid",
+    "parentCommentId": null,
+    "content": "Great effort!",
+    "createdAt": "2026-09-07T08:30:00.000Z"
+  }
+}
+```
+
+---
+
+### GET `/api/social/posts/:id/comments`
+
+🔒 **Requires Bearer token**
+
+List top-level comments pada post (tanpa replies), diurutkan terbaru.
+
+**Query params:** `page`, `limit`
+
+**Response** `200` — array of comment records dengan pagination
+
+---
+
+### PATCH `/api/social/posts/:id/comments/:commentId`
+
+🔒 **Requires Bearer token** — hanya owner comment
+
+Update isi komentar.
+
+**Request**
+```json
+{ "content": "Updated comment" }
+```
+
+**Error** `403` — bukan owner
+```json
+{ "success": false, "message": "You do not have permission to edit this comment", "errors": "FORBIDDEN" }
+```
+
+---
+
+### DELETE `/api/social/posts/:id/comments/:commentId`
+
+🔒 **Requires Bearer token** — hanya owner comment
+
+**Error** `403` — bukan owner
+```json
+{ "success": false, "message": "You do not have permission to delete this comment", "errors": "FORBIDDEN" }
+```
+
+---
+
+## Clubs
+
+Club adalah komunitas fitness yang dapat dibuat oleh user. Semua endpoint memerlukan Bearer token.
+
+**Roles:**
+
+| Role | Keterangan |
+|---|---|
+| `OWNER` | Pembuat club, hak penuh |
+| `ADMIN` | Dipromosikan oleh OWNER, bisa kelola member |
+| `MEMBER` | Anggota biasa |
+
+**Membership rules:**
+- Creator otomatis menjadi `OWNER`
+- OWNER tidak bisa leave club — harus hapus club
+- Satu user hanya bisa join club yang sama satu kali — UNIQUE `(club_id, user_id)`
+- Hanya `OWNER` yang bisa update club, hapus club, ubah role member
+- `OWNER` dan `ADMIN` bisa remove member, tapi ADMIN tidak bisa remove ADMIN lain
+- Club owner tidak bisa di-remove oleh siapapun
+- Hanya member yang bisa posting di club
+
+**Private club rules:**
+- Non-member melihat info terbatas (hanya `id`, `name`, `isPrivate`, `memberCount`)
+- Member list dan club posts private club hanya bisa diakses oleh member
+
+---
+
+### POST `/api/clubs`
+
+🔒 **Requires Bearer token**
+
+Buat club baru. Creator otomatis menjadi member dengan role `OWNER`.
+
+**Request**
+```json
+{
+  "name": "Jogja Running Community",
+  "description": "Komunitas lari di Yogyakarta",
+  "isPrivate": false
+}
+```
+
+Field wajib: `name`. `isPrivate` default `false`.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Club created",
+  "data": {
+    "id": "uuid",
+    "ownerId": "uuid",
+    "name": "Jogja Running Community",
+    "description": "Komunitas lari di Yogyakarta",
+    "isPrivate": false,
+    "createdAt": "2026-09-07T08:00:00.000Z"
+  }
+}
+```
+
+**Error** `409` — nama sudah dipakai
+```json
+{ "success": false, "message": "Club name already taken", "errors": "CLUB_NAME_TAKEN" }
+```
+
+---
+
+### GET `/api/clubs`
+
+🔒 **Requires Bearer token**
+
+List semua club, diurutkan terbaru. Supports search by name.
+
+**Query params:** `page` (default 1), `limit` (default 20, max 100), `search` (opsional)
+
+**Response** `200` — array of clubs dengan pagination
+
+---
+
+### GET `/api/clubs/me`
+
+🔒 **Requires Bearer token**
+
+List club yang diikuti user saat ini (sebagai member dengan role apapun), diurutkan berdasarkan `joinedAt` terbaru.
+
+**Query params:** `page`, `limit`
+
+---
+
+### GET `/api/clubs/:id`
+
+🔒 **Requires Bearer token**
+
+Detail satu club. Private club hanya menampilkan info terbatas ke non-member.
+
+**Response** `200` — member atau public club
+```json
+{
+  "success": true,
+  "message": "Club retrieved",
+  "data": {
+    "id": "uuid",
+    "name": "Jogja Running Community",
+    "description": "...",
+    "isPrivate": false,
+    "memberCount": 42,
+    "membership": {
+      "role": "MEMBER",
+      "joinedAt": "2026-09-01T08:00:00.000Z"
+    }
+  }
+}
+```
+
+`membership` bernilai `null` jika user belum join.
+
+**Response** `200` — non-member pada private club
+```json
+{
+  "success": true,
+  "message": "Club retrieved",
+  "data": {
+    "id": "uuid",
+    "name": "Private Club",
+    "isPrivate": true,
+    "memberCount": 10
+  }
+}
+```
+
+---
+
+### PATCH `/api/clubs/:id`
+
+🔒 **Requires Bearer token** — hanya OWNER
+
+Update nama, deskripsi, atau visibilitas club.
+
+**Request**
+```json
+{
+  "name": "New Name",
+  "description": "Updated description",
+  "isPrivate": true
+}
+```
+
+**Error** `403` — bukan owner
+```json
+{ "success": false, "message": "Only the club owner can update club details", "errors": "FORBIDDEN" }
+```
+
+---
+
+### DELETE `/api/clubs/:id`
+
+🔒 **Requires Bearer token** — hanya OWNER
+
+Hapus club beserta semua member dan posts (cascade).
+
+---
+
+### POST `/api/clubs/:id/join`
+
+🔒 **Requires Bearer token**
+
+Bergabung ke club.
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Joined club successfully",
+  "data": {
+    "id": "uuid",
+    "clubId": "uuid",
+    "userId": "uuid",
+    "role": "MEMBER",
+    "joinedAt": "2026-09-07T08:00:00.000Z"
+  }
+}
+```
+
+**Error** `409` — sudah member
+```json
+{ "success": false, "message": "Already a member of this club", "errors": "ALREADY_MEMBER" }
+```
+
+---
+
+### DELETE `/api/clubs/:id/leave`
+
+🔒 **Requires Bearer token**
+
+Keluar dari club. Owner tidak bisa leave.
+
+**Error** `400` — owner mencoba leave
+```json
+{ "success": false, "message": "Club owner cannot leave. Transfer ownership or delete the club.", "errors": "OWNER_CANNOT_LEAVE" }
+```
+
+---
+
+### GET `/api/clubs/:id/members`
+
+🔒 **Requires Bearer token**
+
+List members club, diurutkan berdasarkan `joinedAt` terbaru. Private club: hanya member yang bisa akses.
+
+**Query params:** `page`, `limit`
+
+**Response** `200` — array of member records dengan pagination
+
+---
+
+### DELETE `/api/clubs/:id/members/:userId`
+
+🔒 **Requires Bearer token** — OWNER atau ADMIN
+
+Kick member dari club.
+
+**Error** `403` — tidak punya izin
+```json
+{ "success": false, "message": "Only OWNER or ADMIN can remove members", "errors": "FORBIDDEN" }
+```
+
+**Error** `400` — mencoba remove owner
+```json
+{ "success": false, "message": "Cannot remove the club owner", "errors": "CANNOT_REMOVE_OWNER" }
+```
+
+---
+
+### PATCH `/api/clubs/:id/members/:userId/role`
+
+🔒 **Requires Bearer token** — hanya OWNER
+
+Update role member menjadi `MEMBER` atau `ADMIN`.
+
+**Request**
+```json
+{ "role": "ADMIN" }
+```
+
+Role yang bisa di-set: `MEMBER`, `ADMIN`. `OWNER` tidak bisa di-set via API.
+
+**Error** `403` — bukan owner
+```json
+{ "success": false, "message": "Only the club owner can change member roles", "errors": "FORBIDDEN" }
+```
+
+---
+
+### POST `/api/clubs/:id/posts`
+
+🔒 **Requires Bearer token** — hanya member club
+
+Buat post di club. Harus punya `content` atau `activityId`.
+
+**Request**
+```json
+{
+  "content": "Great group run today!",
+  "activityId": "uuid"
+}
+```
+
+**Response** `201`
+```json
+{
+  "success": true,
+  "message": "Post created",
+  "data": {
+    "id": "uuid",
+    "clubId": "uuid",
+    "userId": "uuid",
+    "content": "Great group run today!",
+    "activityId": "uuid",
+    "createdAt": "2026-09-07T09:00:00.000Z"
+  }
+}
+```
+
+**Error** `403` — bukan member
+```json
+{ "success": false, "message": "You must be a member to post in this club", "errors": "NOT_A_MEMBER" }
+```
+
+---
+
+### GET `/api/clubs/:id/posts`
+
+🔒 **Requires Bearer token**
+
+List posts di club, diurutkan terbaru. Private club: hanya member yang bisa akses.
+
+**Query params:** `page`, `limit`
+
+---
+
+### DELETE `/api/clubs/:id/posts/:postId`
+
+🔒 **Requires Bearer token** — post owner atau OWNER/ADMIN
+
+Hapus post dari club. Pemilik post bisa hapus post miliknya. OWNER dan ADMIN bisa hapus post siapapun.
+
+**Error** `403` — tidak punya izin
+```json
+{ "success": false, "message": "You do not have permission to delete this post", "errors": "FORBIDDEN" }
+```
+
+---
+
 # Database Schema
 
 Database: **PostgreSQL + Drizzle ORM** — semua ID menggunakan UUID.

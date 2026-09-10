@@ -1,0 +1,5888 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "KALCERLY API",
+    "version": "1.0.0",
+    "description": "Dokumentasi REST API untuk Kalcerly — Social fitness platform yang menggabungkan GPS tracking, AI activity verification, social features, dan blockchain reward via FIT Token. Dibangun menggunakan Node.js, Express, TypeScript, dan Drizzle ORM (PostgreSQL)."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Server Development Lokal"
+    },
+    {
+      "url": "https://kalcerly.vercel.app",
+      "description": "Production Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Registrasi, login, verifikasi email, Google OAuth, refresh & logout"
+    },
+    {
+      "name": "User",
+      "description": "Profil pengguna"
+    },
+    {
+      "name": "Wallet",
+      "description": "Linking wallet via SIWE untuk fitur blockchain"
+    },
+    {
+      "name": "Activity",
+      "description": "Pencatatan aktivitas olahraga, GPS points, dan verifikasi AI"
+    },
+    {
+      "name": "Route",
+      "description": "Rute olahraga yang dapat dibuat, dibagikan, dan disimpan"
+    },
+    {
+      "name": "Segment",
+      "description": "Segmen rute yang dapat dikompetisikan (efforts & leaderboard)"
+    },
+    {
+      "name": "Challenge",
+      "description": "Kompetisi fitness berbasis target"
+    },
+    {
+      "name": "Goal",
+      "description": "Target fitness personal per periode waktu"
+    },
+    {
+      "name": "Reward",
+      "description": "FIT Token reward & blockchain transactions"
+    },
+    {
+      "name": "Social",
+      "description": "Follow/unfollow, activity posts, kudos, dan feed"
+    },
+    {
+      "name": "Comment",
+      "description": "Komentar pada post"
+    },
+    {
+      "name": "Club",
+      "description": "Komunitas fitness (clubs)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "fullname",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "fullname": {
+            "type": "string",
+            "example": "Adnan Rohmat"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "adnan@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "password123"
+          }
+        }
+      },
+      "VerifyEmailRequest": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "raw-verification-token"
+          }
+        }
+      },
+      "ResendVerificationRequest": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "adnan@example.com"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "adnan@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "password123"
+          }
+        }
+      },
+      "GoogleAuthRequest": {
+        "type": "object",
+        "required": [
+          "credential"
+        ],
+        "properties": {
+          "credential": {
+            "type": "string",
+            "example": "google-id-token-from-client"
+          }
+        }
+      },
+      "RefreshTokenRequest": {
+        "type": "object",
+        "required": [
+          "refreshToken"
+        ],
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJ..."
+          }
+        }
+      },
+      "WalletNonceRequest": {
+        "type": "object",
+        "required": [
+          "address"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "example": "0xABC123..."
+          }
+        }
+      },
+      "WalletVerifyRequest": {
+        "type": "object",
+        "required": [
+          "address",
+          "signature",
+          "message",
+          "chainId"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "example": "0xABC123..."
+          },
+          "signature": {
+            "type": "string",
+            "example": "0xSIG..."
+          },
+          "message": {
+            "type": "string",
+            "example": "app.kalcerly.com wants you to sign in..."
+          },
+          "chainId": {
+            "type": "integer",
+            "example": 97
+          }
+        }
+      },
+      "SetPrimaryWalletRequest": {
+        "type": "object",
+        "required": [
+          "walletId"
+        ],
+        "properties": {
+          "walletId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateActivityRequest": {
+        "type": "object",
+        "required": [
+          "type",
+          "startedAt",
+          "endedAt",
+          "distanceMeters",
+          "durationSeconds"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "WALKING",
+              "RUNNING",
+              "CYCLING"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "distanceMeters": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "elevationMeters": {
+            "type": "integer"
+          },
+          "calories": {
+            "type": "integer"
+          },
+          "averagePaceSeconds": {
+            "type": "integer"
+          },
+          "averageSpeedMps": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "startLatitude": {
+            "type": "string"
+          },
+          "startLongitude": {
+            "type": "string"
+          },
+          "endLatitude": {
+            "type": "string"
+          },
+          "endLongitude": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateActivityRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "UploadGpsPointsRequest": {
+        "type": "object",
+        "required": [
+          "points"
+        ],
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "sequence",
+                "latitude",
+                "longitude",
+                "timestamp"
+              ],
+              "properties": {
+                "sequence": {
+                  "type": "integer"
+                },
+                "latitude": {
+                  "type": "string"
+                },
+                "longitude": {
+                  "type": "string"
+                },
+                "altitudeMeters": {
+                  "type": "string"
+                },
+                "accuracyMeters": {
+                  "type": "string"
+                },
+                "speedMps": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CreateRouteRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "activityType",
+          "distanceMeters",
+          "startLatitude",
+          "startLongitude",
+          "endLatitude",
+          "endLongitude"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string",
+            "enum": [
+              "WALKING",
+              "RUNNING",
+              "CYCLING"
+            ]
+          },
+          "distanceMeters": {
+            "type": "integer"
+          },
+          "estimatedDurationSeconds": {
+            "type": "integer"
+          },
+          "elevationMeters": {
+            "type": "integer"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "EASY",
+              "MODERATE",
+              "HARD",
+              "EXPERT"
+            ]
+          },
+          "startLatitude": {
+            "type": "string"
+          },
+          "startLongitude": {
+            "type": "string"
+          },
+          "endLatitude": {
+            "type": "string"
+          },
+          "endLongitude": {
+            "type": "string"
+          },
+          "polyline": {
+            "type": "string"
+          },
+          "isPublic": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateRouteRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string"
+          },
+          "isPublic": {
+            "type": "boolean"
+          },
+          "polyline": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateSegmentRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "activityType",
+          "distanceMeters",
+          "startLatitude",
+          "startLongitude",
+          "endLatitude",
+          "endLongitude"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string",
+            "enum": [
+              "WALKING",
+              "RUNNING",
+              "CYCLING"
+            ]
+          },
+          "distanceMeters": {
+            "type": "integer"
+          },
+          "elevationGainMeters": {
+            "type": "integer"
+          },
+          "startLatitude": {
+            "type": "string"
+          },
+          "startLongitude": {
+            "type": "string"
+          },
+          "endLatitude": {
+            "type": "string"
+          },
+          "endLongitude": {
+            "type": "string"
+          },
+          "polyline": {
+            "type": "string"
+          },
+          "isPublic": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreateSegmentEffortRequest": {
+        "type": "object",
+        "required": [
+          "activityId",
+          "elapsedSeconds"
+        ],
+        "properties": {
+          "activityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "elapsedSeconds": {
+            "type": "integer"
+          },
+          "averageSpeedMps": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateChallengeRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "startAt",
+          "endAt"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DISTANCE",
+              "DURATION",
+              "ACTIVITY_COUNT",
+              "STREAK"
+            ]
+          },
+          "targetDistanceMeters": {
+            "type": "integer"
+          },
+          "targetDurationSeconds": {
+            "type": "integer"
+          },
+          "targetActivities": {
+            "type": "integer"
+          },
+          "targetStreakDays": {
+            "type": "integer"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AddProgressRequest": {
+        "type": "object",
+        "required": [
+          "activityId"
+        ],
+        "properties": {
+          "activityId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateGoalRequest": {
+        "type": "object",
+        "required": [
+          "type",
+          "period",
+          "targetValue",
+          "startDate",
+          "endDate"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "DISTANCE",
+              "DURATION",
+              "ACTIVITY_COUNT",
+              "ELEVATION"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY",
+              "YEARLY"
+            ]
+          },
+          "targetValue": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "CreatePostRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "activityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "FOLLOWERS",
+              "PRIVATE"
+            ],
+            "default": "PUBLIC"
+          }
+        }
+      },
+      "UpdatePostRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "FOLLOWERS",
+              "PRIVATE"
+            ]
+          }
+        }
+      },
+      "CreateCommentRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "example": "This is a great announcement!"
+          },
+          "parentCommentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CommentUpdateRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "example": "This is an updated comment!"
+          }
+        }
+      },
+      "CreateClubRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "UpdateClubRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateMemberRoleRequest": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "MEMBER",
+              "ADMIN"
+            ],
+            "example": "ADMIN"
+          }
+        }
+      },
+      "CreateClubPostRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "activityId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UpdateRoleRequest": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "kadiv",
+              "admin"
+            ],
+            "example": "kadiv"
+          }
+        }
+      },
+      "TagRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Event"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register akun baru",
+        "description": "Daftarkan akun baru. Tidak membuat session — user harus verifikasi email terlebih dahulu.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "example": {
+                "fullname": "Adnan Rohmat",
+                "email": "adnan@example.com",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Registration successful. Please check your email to verify your account.",
+                  "data": {
+                    "requiresEmailVerification": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email sudah terdaftar",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Email already registered",
+                  "errors": "EMAIL_ALREADY_EXISTS"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify-email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Verifikasi email",
+        "description": "Verifikasi email menggunakan token yang dikirim ke email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              },
+              "example": {
+                "token": "raw-verification-token"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verified successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Email verified successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token invalid / expired / sudah digunakan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid or expired verification token",
+                  "errors": "INVALID_TOKEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/resend-verification": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Kirim ulang email verifikasi",
+        "description": "Kirim ulang email verifikasi. Token lama diinvalidate otomatis. Rate limited: 3 request per 15 menit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationRequest"
+              },
+              "example": {
+                "email": "adnan@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification email sent",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Verification email sent"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Terlalu banyak permintaan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Too many requests. Please try again later.",
+                  "errors": "RATE_LIMITED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login dengan email + password",
+        "description": "User yang belum verifikasi email akan ditolak.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "email": "adnan@example.com",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Login successfully",
+                  "data": {
+                    "accessToken": "eyJ...",
+                    "refreshToken": "eyJ...",
+                    "user": {
+                      "id": "uuid",
+                      "fullname": "Adnan Rohmat",
+                      "email": "adnan@example.com",
+                      "avatarUrl": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credentials salah",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid credentials",
+                  "errors": "INVALID_CREDENTIALS"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Email belum diverifikasi",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Email verification is required before login.",
+                  "errors": "EMAIL_NOT_VERIFIED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login/Register via Google OAuth",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleAuthRequest"
+              },
+              "example": {
+                "credential": "google-id-token-from-client"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Google authentication successful",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Google authentication successful",
+                  "data": {
+                    "accessToken": "eyJ...",
+                    "refreshToken": "eyJ...",
+                    "user": {
+                      "id": "uuid",
+                      "fullname": "Adnan Rohmat",
+                      "email": "adnan@gmail.com",
+                      "avatarUrl": "https://..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token Google tidak valid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid Google credential",
+                  "errors": "INVALID_GOOGLE_CREDENTIAL"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Refresh access token",
+        "description": "Dapatkan access token baru. Refresh token lama direvoke (rotation).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              },
+              "example": {
+                "refreshToken": "eyJ..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Token refreshed",
+                  "data": {
+                    "accessToken": "eyJ...",
+                    "refreshToken": "eyJ..."
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token tidak valid/expired",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid or expired refresh token",
+                  "errors": "INVALID_REFRESH_TOKEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logout",
+        "description": "Revoke session saat ini.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              },
+              "example": {
+                "refreshToken": "eyJ..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Logged out successfully"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Unauthorized",
+                  "errors": "UNAUTHORIZED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Ambil profil user saat ini",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User data",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "User data",
+                  "data": {
+                    "id": "uuid",
+                    "fullname": "Adnan Rohmat",
+                    "email": "adnan@example.com",
+                    "avatarUrl": null,
+                    "bio": null,
+                    "dateOfBirth": null,
+                    "gender": null,
+                    "location": null,
+                    "isPrivate": false,
+                    "emailVerified": true
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Unauthorized",
+                  "errors": "UNAUTHORIZED"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Update profil user",
+        "description": "Update profile user. Menggunakan multipart/form-data karena mendukung upload avatar. Semua field opsional. Jika avatar dikirim, file lama di Cloudinary otomatis dihapus dan diganti yang baru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullname": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "bio": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "dateOfBirth": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "1999-05-20"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "location": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "isPrivate": {
+                    "type": "string",
+                    "enum": [
+                      "true",
+                      "false"
+                    ]
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Foto profil, maks 5MB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Profile updated successfully",
+                  "data": {
+                    "id": "uuid",
+                    "fullname": "Adnan Baru",
+                    "email": "adnan@example.com",
+                    "avatarUrl": "https://res.cloudinary.com/...",
+                    "bio": "Saya suka lari pagi.",
+                    "dateOfBirth": "1999-05-20",
+                    "gender": "male",
+                    "location": "Yogyakarta, Indonesia",
+                    "isPrivate": false,
+                    "emailVerified": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Unauthorized",
+                  "errors": "UNAUTHORIZED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/wallet/nonce": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Generate SIWE nonce",
+        "description": "Generate SIWE nonce untuk proses wallet ownership verification.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletNonceRequest"
+              },
+              "example": {
+                "address": "0xABC123..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Nonce generated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Nonce generated",
+                  "data": {
+                    "nonce": "a1b2c3d4e5f6...",
+                    "expiresAt": "2026-09-06T10:15:00.000Z",
+                    "domain": "app.kalcerly.com",
+                    "chainId": 97
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Unauthorized",
+                  "errors": "UNAUTHORIZED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/wallet": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "List wallet terhubung",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallets retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Wallets retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "address": "0xabc123...",
+                      "chainId": 97,
+                      "isPrimary": true,
+                      "verifiedAt": "2026-09-06T10:00:00.000Z",
+                      "createdAt": "2026-09-06T10:00:00.000Z",
+                      "updatedAt": "2026-09-06T10:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Unauthorized",
+                  "errors": "UNAUTHORIZED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/wallet/verify": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Verifikasi & hubungkan wallet",
+        "description": "Verifikasi kepemilikan wallet via SIWE signature dan hubungkan ke akun.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletVerifyRequest"
+              },
+              "example": {
+                "address": "0xABC123...",
+                "signature": "0xSIG...",
+                "message": "app.kalcerly.com wants you to sign in with your Ethereum account:\n0xABC123...\n\nNonce: a1b2c3d4",
+                "chainId": 97
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet verified and linked",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Wallet verified and linked",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "address": "0xabc123...",
+                    "chainId": 97,
+                    "isPrimary": true,
+                    "verifiedAt": "2026-09-06T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nonce invalid/expired",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid or expired nonce",
+                  "errors": "INVALID_NONCE"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Signature tidak valid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid signature",
+                  "errors": "INVALID_SIGNATURE"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Wallet sudah dimiliki akun lain",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Wallet is already linked to another account",
+                  "errors": "WALLET_OWNED_BY_OTHER"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/wallet/primary": {
+      "patch": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Set wallet sebagai primary",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPrimaryWalletRequest"
+              },
+              "example": {
+                "walletId": "uuid"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Primary wallet updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Primary wallet updated",
+                  "data": {
+                    "id": "uuid",
+                    "address": "0xabc123...",
+                    "chainId": 97,
+                    "isPrimary": true,
+                    "verifiedAt": "2026-09-06T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Wallet tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Wallet not found",
+                  "errors": "WALLET_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/wallet/{id}": {
+      "delete": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Hapus wallet",
+        "description": "Jika wallet yang dihapus adalah primary, wallet lain otomatis menjadi primary.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Wallet ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet deleted successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Wallet deleted successfully"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Wallet tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Wallet not found",
+                  "errors": "WALLET_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activities": {
+      "post": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Buat activity baru",
+        "description": "Status awal: PENDING.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActivityRequest"
+              },
+              "example": {
+                "type": "RUNNING",
+                "startedAt": "2026-09-06T07:00:00.000Z",
+                "endedAt": "2026-09-06T07:45:00.000Z",
+                "distanceMeters": 8000,
+                "durationSeconds": 2700,
+                "elevationMeters": 45,
+                "calories": 380,
+                "averagePaceSeconds": 338,
+                "averageSpeedMps": "2.963",
+                "title": "Morning Run",
+                "startLatitude": "-7.795600",
+                "startLongitude": "110.369500",
+                "endLatitude": "-7.801200",
+                "endLongitude": "110.374100"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Activity created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Activity created",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "type": "RUNNING",
+                    "status": "PENDING",
+                    "distanceMeters": 8000,
+                    "durationSeconds": 2700,
+                    "startedAt": "2026-09-06T07:00:00.000Z",
+                    "endedAt": "2026-09-06T07:45:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "List activity milik user",
+        "description": "Diurutkan terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activities retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Activities retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "type": "RUNNING",
+                      "status": "PENDING",
+                      "distanceMeters": 8000,
+                      "durationSeconds": 2700,
+                      "startedAt": "2026-09-06T07:00:00.000Z",
+                      "endedAt": "2026-09-06T07:45:00.000Z"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activities/{id}": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Detail activity",
+        "description": "Ambil detail activity beserta GPS points, verification result, dan statistics.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Activity retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "type": "RUNNING",
+                    "status": "VERIFIED",
+                    "activityHash": "0x...",
+                    "points": [],
+                    "verification": {
+                      "result": "VERIFIED",
+                      "provider": "INTERNAL",
+                      "confidence": "0.9821"
+                    },
+                    "stats": null
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Activity not found",
+                  "errors": "ACTIVITY_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Update activity",
+        "description": "Update title atau description. Tidak bisa edit activity berstatus VERIFIED.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActivityRequest"
+              },
+              "example": {
+                "title": "Sunday Long Run",
+                "description": "Recovery pace"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activity updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Activity updated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Activity sudah VERIFIED",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Cannot edit a verified activity",
+                  "errors": "ACTIVITY_ALREADY_VERIFIED"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Hapus activity",
+        "description": "Tidak bisa menghapus activity berstatus VERIFIED.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Activity deleted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Activity sudah VERIFIED",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Cannot delete a verified activity",
+                  "errors": "ACTIVITY_ALREADY_VERIFIED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activities/{id}/points": {
+      "post": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Upload GPS points",
+        "description": "Bisa dipanggil berkali-kali. Max 5000 points per request. Tidak bisa upload ke activity yang sudah VERIFIED atau REJECTED.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadGpsPointsRequest"
+              },
+              "example": {
+                "points": [
+                  {
+                    "sequence": 0,
+                    "latitude": "-7.795600",
+                    "longitude": "110.369500",
+                    "altitudeMeters": "115.50",
+                    "accuracyMeters": "5.00",
+                    "speedMps": "2.50",
+                    "timestamp": "2026-09-06T07:00:00.000Z"
+                  },
+                  {
+                    "sequence": 1,
+                    "latitude": "-7.796100",
+                    "longitude": "110.369800",
+                    "timestamp": "2026-09-06T07:00:05.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "GPS points uploaded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "GPS points uploaded",
+                  "data": {
+                    "uploaded": 2,
+                    "total": 2
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Activity sudah VERIFIED/REJECTED",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Cannot upload points to this activity",
+                  "errors": "INVALID_STATUS"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Ambil GPS points",
+        "description": "Diurutkan berdasarkan sequence.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GPS points retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "GPS points retrieved",
+                  "data": [
+                    {
+                      "id": 1,
+                      "activityId": "uuid",
+                      "sequence": 0,
+                      "latitude": "-7.795600",
+                      "longitude": "110.369500",
+                      "altitudeMeters": "115.50",
+                      "speedMps": "2.50",
+                      "timestamp": "2026-09-06T07:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activities/{id}/verify": {
+      "post": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Submit activity untuk verifikasi",
+        "description": "Syarat: status PENDING dan sudah ada GPS points. Activity hash (SHA-256) dibuat saat submit. Status berubah ke VERIFYING. Verification result diproses AI.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity submitted for verification",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Activity submitted for verification",
+                  "data": {
+                    "id": "uuid",
+                    "status": "VERIFYING",
+                    "activityHash": "0xabc123..."
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tidak ada GPS points / status bukan PENDING",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Activity has no GPS points. Upload GPS data before verifying.",
+                  "errors": "NO_GPS_POINTS"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routes": {
+      "get": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "List public routes",
+        "description": "Diurutkan berdasarkan popularity_score tertinggi.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Routes retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Routes retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "name": "Kali Urang Loop",
+                      "activityType": "RUNNING",
+                      "distanceMeters": 8500,
+                      "elevationMeters": 120,
+                      "difficulty": "MODERATE",
+                      "isPublic": true,
+                      "popularityScore": "15.0000"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "Buat route baru",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRouteRequest"
+              },
+              "example": {
+                "name": "Kali Urang Loop",
+                "activityType": "RUNNING",
+                "distanceMeters": 8500,
+                "estimatedDurationSeconds": 3000,
+                "elevationMeters": 120,
+                "difficulty": "MODERATE",
+                "startLatitude": "-7.795600",
+                "startLongitude": "110.369500",
+                "endLatitude": "-7.795600",
+                "endLongitude": "110.369500",
+                "polyline": "encodedPolylineString",
+                "isPublic": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Route created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Route created",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "name": "Kali Urang Loop",
+                    "activityType": "RUNNING",
+                    "distanceMeters": 8500,
+                    "elevationMeters": 120,
+                    "difficulty": "MODERATE",
+                    "isPublic": true,
+                    "popularityScore": "15.0000"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routes/saved": {
+      "get": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "List saved routes",
+        "description": "Endpoint ini harus dipanggil sebelum GET /api/routes/:id pada path /saved agar tidak di-match sebagai :id.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved routes retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Saved routes retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "name": "Kali Urang Loop",
+                      "activityType": "RUNNING",
+                      "distanceMeters": 8500,
+                      "elevationMeters": 120,
+                      "difficulty": "MODERATE",
+                      "isPublic": true,
+                      "popularityScore": "15.0000"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routes/{id}": {
+      "get": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "Detail route",
+        "description": "Dapat diakses tanpa login.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Route ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Route retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "name": "Kali Urang Loop",
+                    "activityType": "RUNNING",
+                    "distanceMeters": 8500,
+                    "elevationMeters": 120,
+                    "difficulty": "MODERATE",
+                    "isPublic": true,
+                    "popularityScore": "15.0000"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Route not found",
+                  "errors": "ROUTE_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "Update route",
+        "description": "Hanya creator route. Semua field opsional.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Route ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRouteRequest"
+              },
+              "example": {
+                "name": "Updated Route Name"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Route updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Route updated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to update this route",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "Hapus route",
+        "description": "Hanya creator route.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Route ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Route deleted"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to delete this route",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routes/{id}/save": {
+      "post": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "Simpan route",
+        "description": "Idempotent — tidak error jika sudah disimpan.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Route ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Route saved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Route saved",
+                  "data": {
+                    "saved": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Route"
+        ],
+        "summary": "Hapus route dari saved routes",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Route ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route unsaved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Route unsaved",
+                  "data": {
+                    "saved": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments": {
+      "get": {
+        "tags": [
+          "Segment"
+        ],
+        "summary": "List public segments",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Segments retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Segments retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "name": "Jalan Kaliurang KM 5-7",
+                      "activityType": "CYCLING",
+                      "distanceMeters": 2000,
+                      "elevationGainMeters": 45,
+                      "isPublic": true
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Segment"
+        ],
+        "summary": "Buat segment baru",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSegmentRequest"
+              },
+              "example": {
+                "name": "Jalan Kaliurang KM 5-7",
+                "activityType": "CYCLING",
+                "distanceMeters": 2000,
+                "elevationGainMeters": 45,
+                "startLatitude": "-7.730000",
+                "startLongitude": "110.388000",
+                "endLatitude": "-7.710000",
+                "endLongitude": "110.390000",
+                "polyline": "encodedPolyline",
+                "isPublic": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Segment created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Segment created",
+                  "data": {
+                    "id": "uuid",
+                    "name": "Jalan Kaliurang KM 5-7",
+                    "activityType": "CYCLING",
+                    "distanceMeters": 2000,
+                    "elevationGainMeters": 45,
+                    "isPublic": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments/{id}": {
+      "get": {
+        "tags": [
+          "Segment"
+        ],
+        "summary": "Detail segment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Segment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Segment retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Segment retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "name": "Jalan Kaliurang KM 5-7",
+                    "activityType": "CYCLING",
+                    "distanceMeters": 2000,
+                    "elevationGainMeters": 45,
+                    "isPublic": true
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Segment tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Segment not found",
+                  "errors": "SEGMENT_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Segment"
+        ],
+        "summary": "Hapus segment",
+        "description": "Hanya creator segment.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Segment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Segment deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Segment deleted"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to delete this segment",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments/{id}/efforts": {
+      "post": {
+        "tags": [
+          "Segment"
+        ],
+        "summary": "Rekam segment effort",
+        "description": "Rekam effort user pada segment dari activity yang sudah VERIFIED.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Segment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSegmentEffortRequest"
+              },
+              "example": {
+                "activityId": "uuid",
+                "elapsedSeconds": 420,
+                "averageSpeedMps": "4.762"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Segment effort recorded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Segment effort recorded",
+                  "data": {
+                    "id": "uuid",
+                    "segmentId": "uuid",
+                    "activityId": "uuid",
+                    "userId": "uuid",
+                    "elapsedSeconds": 420,
+                    "rank": 3,
+                    "isPersonalBest": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Activity belum VERIFIED",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only VERIFIED activities can record segment efforts",
+                  "errors": "ACTIVITY_NOT_VERIFIED"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Effort sudah ada",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Effort already recorded for this activity on this segment",
+                  "errors": "EFFORT_EXISTS"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments/{id}/leaderboard": {
+      "get": {
+        "tags": [
+          "Segment"
+        ],
+        "summary": "Leaderboard segment",
+        "description": "Diurutkan berdasarkan waktu tercepat.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Segment ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah data (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Leaderboard retrieved",
+                  "data": {
+                    "segment": {
+                      "id": "uuid",
+                      "name": "Jalan Kaliurang KM 5-7"
+                    },
+                    "efforts": [
+                      {
+                        "rank": 1,
+                        "userId": "uuid",
+                        "elapsedSeconds": 380,
+                        "isPersonalBest": true
+                      },
+                      {
+                        "rank": 2,
+                        "userId": "uuid",
+                        "elapsedSeconds": 420
+                      }
+                    ],
+                    "total": 15
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges": {
+      "post": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "Buat challenge baru",
+        "description": "Creator otomatis menjadi creatorId.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChallengeRequest"
+              },
+              "example": {
+                "name": "Run 50km in December",
+                "description": "Complete 50km of running in December",
+                "type": "DISTANCE",
+                "targetDistanceMeters": 50000,
+                "startAt": "2026-12-01T00:00:00.000Z",
+                "endAt": "2026-12-31T23:59:59.000Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Challenge created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Challenge created",
+                  "data": {
+                    "id": "uuid",
+                    "name": "Run 50km in December",
+                    "type": "DISTANCE",
+                    "targetDistanceMeters": 50000,
+                    "startAt": "2026-12-01T00:00:00.000Z",
+                    "endAt": "2026-12-31T23:59:59.000Z",
+                    "isActive": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "List challenge aktif",
+        "description": "isActive = true dan dalam periode saat ini.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenges retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Challenges retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "name": "Run 50km in December",
+                      "type": "DISTANCE",
+                      "targetDistanceMeters": 50000,
+                      "startAt": "2026-12-01T00:00:00.000Z",
+                      "endAt": "2026-12-31T23:59:59.000Z",
+                      "isActive": true
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/me": {
+      "get": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "List challenge yang diikuti user",
+        "description": "Diurutkan berdasarkan joinedAt terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My challenges retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "My challenges retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "challengeId": "uuid",
+                      "userId": "uuid",
+                      "progressDistanceMeters": 12000,
+                      "joinedAt": "2026-12-01T08:00:00.000Z"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{id}": {
+      "get": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "Detail challenge",
+        "description": "Termasuk participantCount dan status partisipasi user saat ini (myParticipation).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Challenge ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenge retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Challenge retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "name": "Run 50km in December",
+                    "type": "DISTANCE",
+                    "targetDistanceMeters": 50000,
+                    "isActive": true,
+                    "participantCount": 42,
+                    "myParticipation": {
+                      "id": "uuid",
+                      "progressDistanceMeters": 12000,
+                      "completedAt": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Challenge tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Challenge not found",
+                  "errors": "CHALLENGE_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{id}/join": {
+      "post": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "Join challenge",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Challenge ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Joined challenge successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Joined challenge successfully",
+                  "data": {
+                    "id": "uuid",
+                    "challengeId": "uuid",
+                    "userId": "uuid",
+                    "progressDistanceMeters": 0,
+                    "joinedAt": "2026-12-01T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Challenge sudah berakhir",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Challenge has already ended",
+                  "errors": "CHALLENGE_ENDED"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Sudah join sebelumnya",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Already joined this challenge",
+                  "errors": "ALREADY_JOINED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{id}/leave": {
+      "delete": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "Leave challenge",
+        "description": "Tidak bisa leave challenge yang sudah completedAt.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Challenge ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Left challenge successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Left challenge successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Challenge sudah selesai",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Cannot leave a completed challenge",
+                  "errors": "CHALLENGE_ALREADY_COMPLETED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{id}/progress": {
+      "post": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "Tambah progress challenge",
+        "description": "Tambahkan progress dari activity yang sudah VERIFIED. Backend menghitung contribution otomatis.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Challenge ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProgressRequest"
+              },
+              "example": {
+                "activityId": "uuid"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Progress added",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Progress added",
+                  "data": {
+                    "participant": {
+                      "id": "uuid",
+                      "progressDistanceMeters": 22000,
+                      "completedAt": null
+                    },
+                    "progressAmount": 10000,
+                    "isCompleted": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Activity bukan VERIFIED / di luar periode",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only VERIFIED activities can contribute to challenge progress",
+                  "errors": "ACTIVITY_NOT_VERIFIED"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Activity sudah digunakan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Activity has already been used for this challenge",
+                  "errors": "ACTIVITY_ALREADY_USED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/challenges/{id}/participants": {
+      "get": {
+        "tags": [
+          "Challenge"
+        ],
+        "summary": "List participants challenge",
+        "description": "Diurutkan berdasarkan progressDistanceMeters tertinggi.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Challenge ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Participants retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Participants retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "challengeId": "uuid",
+                      "userId": "uuid",
+                      "progressDistanceMeters": 22000
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/goals": {
+      "post": {
+        "tags": [
+          "Goal"
+        ],
+        "summary": "Buat goal baru",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGoalRequest"
+              },
+              "example": {
+                "type": "DISTANCE",
+                "period": "MONTHLY",
+                "targetValue": 100000,
+                "startDate": "2026-12-01",
+                "endDate": "2026-12-31"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Goal created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Goal created",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "type": "DISTANCE",
+                    "period": "MONTHLY",
+                    "targetValue": 100000,
+                    "currentValue": 0,
+                    "startDate": "2026-12-01",
+                    "endDate": "2026-12-31",
+                    "completedAt": null
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Goal"
+        ],
+        "summary": "List goal milik user",
+        "description": "Diurutkan terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goals retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Goals retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "type": "DISTANCE",
+                      "period": "MONTHLY",
+                      "targetValue": 100000,
+                      "currentValue": 0,
+                      "startDate": "2026-12-01",
+                      "endDate": "2026-12-31",
+                      "completedAt": null
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/goals/{id}": {
+      "get": {
+        "tags": [
+          "Goal"
+        ],
+        "summary": "Detail goal",
+        "description": "Hanya bisa diakses oleh owner.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Goal ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goal retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Goal retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "type": "DISTANCE",
+                    "period": "MONTHLY",
+                    "targetValue": 100000,
+                    "currentValue": 35000,
+                    "startDate": "2026-12-01",
+                    "endDate": "2026-12-31",
+                    "completedAt": null
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Goal tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Goal not found",
+                  "errors": "GOAL_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Goal"
+        ],
+        "summary": "Hapus goal",
+        "description": "Hanya owner.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Goal ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goal deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Goal deleted"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to delete this goal",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/goals/{id}/progress": {
+      "post": {
+        "tags": [
+          "Goal"
+        ],
+        "summary": "Tambah progress goal",
+        "description": "Tambahkan progress dari activity yang sudah VERIFIED.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Goal ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProgressRequest"
+              },
+              "example": {
+                "activityId": "uuid"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Goal progress updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Goal progress updated",
+                  "data": {
+                    "goal": {
+                      "id": "uuid",
+                      "currentValue": 45000,
+                      "completedAt": null
+                    },
+                    "contribution": 10000,
+                    "isCompleted": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Activity bukan VERIFIED / di luar periode / goal sudah selesai",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only VERIFIED activities can contribute to goal progress",
+                  "errors": "ACTIVITY_NOT_VERIFIED"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rewards/activities/{activityId}": {
+      "post": {
+        "tags": [
+          "Reward"
+        ],
+        "summary": "Proses reward untuk activity",
+        "description": "Proses reward untuk activity yang sudah VERIFIED. Idempotent — jika reward sudah ada, mengembalikan record yang ada.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activityId",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reward processed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Reward processed",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "activityId": "uuid",
+                    "walletId": "uuid",
+                    "rewardType": "ACTIVITY",
+                    "amountBaseUnits": "10000000000000000000",
+                    "status": "COMPLETED",
+                    "contractAddress": "0x...",
+                    "transactionId": "uuid",
+                    "rewardedAt": "2026-09-07T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Activity belum VERIFIED / activity hash belum ada",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only VERIFIED activities are eligible for rewards",
+                  "errors": "ACTIVITY_NOT_VERIFIED"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Reward"
+        ],
+        "summary": "Cek status reward activity",
+        "description": "Mengembalikan null jika belum ada reward.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activityId",
+            "in": "path",
+            "required": true,
+            "description": "Activity ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reward retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Reward retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "status": "COMPLETED",
+                    "amountBaseUnits": "10000000000000000000",
+                    "rewardedAt": "2026-09-07T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rewards": {
+      "get": {
+        "tags": [
+          "Reward"
+        ],
+        "summary": "Riwayat reward milik user",
+        "description": "Diurutkan terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rewards retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Rewards retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "status": "COMPLETED",
+                      "amountBaseUnits": "10000000000000000000"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rewards/balance": {
+      "get": {
+        "tags": [
+          "Reward"
+        ],
+        "summary": "Ambil saldo FIT Token",
+        "description": "Ambil saldo FIT Token dari primary wallet on-chain via FITToken.sol.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "FIT balance retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "FIT balance retrieved",
+                  "data": {
+                    "address": "0xabc123...",
+                    "balance": "50000000000000000000",
+                    "hasWallet": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rewards/transactions": {
+      "get": {
+        "tags": [
+          "Reward"
+        ],
+        "summary": "Riwayat blockchain transactions",
+        "description": "Mencakup semua tipe: CREATE_ACTIVITY_PROOF, REWARD_ACTIVITY, COMPLETE_CHALLENGE.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transactions retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Transactions retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "type": "REWARD_ACTIVITY",
+                      "chainId": 97,
+                      "contractAddress": "0x...",
+                      "functionName": "rewardActivity",
+                      "transactionHash": "0xabc...",
+                      "blockNumber": 12345678,
+                      "status": "CONFIRMED",
+                      "submittedAt": "2026-09-07T10:00:00.000Z",
+                      "confirmedAt": "2026-09-07T10:00:05.000Z"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/feed": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Ambil feed",
+        "description": "Post dari user yang di-follow + post sendiri, diurutkan terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Feed retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "activityId": "uuid",
+                      "content": "Great run this morning!",
+                      "visibility": "PUBLIC",
+                      "createdAt": "2026-09-07T07:00:00.000Z"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/posts": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Buat post baru",
+        "description": "Harus memiliki content atau activityId (atau keduanya).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePostRequest"
+              },
+              "example": {
+                "content": "Just finished a 10km run!",
+                "activityId": "uuid",
+                "visibility": "PUBLIC"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Post created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Post created",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "activityId": "uuid",
+                    "content": "Great run this morning!",
+                    "visibility": "PUBLIC",
+                    "createdAt": "2026-09-07T07:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Validation failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/posts/{id}": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Detail post",
+        "description": "Termasuk kudoCount, commentCount, dan hasKudo. Post PRIVATE hanya owner. Post FOLLOWERS hanya owner + follower.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Post retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "content": "Great run!",
+                    "visibility": "PUBLIC",
+                    "kudoCount": 12,
+                    "commentCount": 3,
+                    "hasKudo": false
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post tidak ditemukan / tidak berhak",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Post not found",
+                  "errors": "POST_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Update post",
+        "description": "Hanya owner post.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePostRequest"
+              },
+              "example": {
+                "content": "Updated content",
+                "visibility": "FOLLOWERS"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Post updated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to edit this post",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Hapus post",
+        "description": "Hanya owner post.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Post deleted"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to delete this post",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/users/{userId}/posts": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "List post milik user tertentu",
+        "description": "Visibility difilter: non-owner hanya lihat PUBLIC dan FOLLOWERS (jika following).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User posts retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "User posts retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "activityId": "uuid",
+                      "content": "Great run this morning!",
+                      "visibility": "PUBLIC",
+                      "createdAt": "2026-09-07T07:00:00.000Z"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/users/{userId}/follow": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Follow user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "User followed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "User followed",
+                  "data": {
+                    "id": "uuid",
+                    "followerId": "uuid",
+                    "followingId": "uuid",
+                    "createdAt": "2026-09-07T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Self follow",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You cannot follow yourself",
+                  "errors": "SELF_FOLLOW"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Sudah following",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Already following this user",
+                  "errors": "ALREADY_FOLLOWING"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Unfollow user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User unfollowed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "User unfollowed"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tidak sedang following",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You are not following this user",
+                  "errors": "NOT_FOLLOWING"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/users/{userId}/followers": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "List followers",
+        "description": "Diurutkan terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Followers retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Followers retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "followerId": "uuid",
+                      "followingId": "uuid"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/users/{userId}/following": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "List following",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Following retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Following retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "followerId": "uuid",
+                      "followingId": "uuid"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/posts/{id}/kudos": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Beri kudos pada post",
+        "description": "Idempoten berdasarkan (userId, postId).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Kudos given",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Kudos given",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "postId": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Sudah memberi kudos",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Already given kudos to this post",
+                  "errors": "ALREADY_KUDOED"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Hapus kudos dari post",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kudos removed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Kudos removed"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Belum memberi kudos",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You have not given kudos to this post",
+                  "errors": "KUDO_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/posts/{id}/comments": {
+      "post": {
+        "tags": [
+          "Comment"
+        ],
+        "summary": "Tambah komentar pada post",
+        "description": "Mendukung reply via parentCommentId.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              },
+              "example": {
+                "content": "Great effort!",
+                "parentCommentId": "uuid"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Comment created",
+                  "data": {
+                    "id": "uuid",
+                    "userId": "uuid",
+                    "postId": "uuid",
+                    "parentCommentId": null,
+                    "content": "Great effort!",
+                    "createdAt": "2026-09-07T08:30:00.000Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Comment"
+        ],
+        "summary": "List top-level comments pada post",
+        "description": "Tanpa replies, diurutkan terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comments retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Comments retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "postId": "uuid",
+                      "content": "Great effort!"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/posts/{id}/comments/{commentId}": {
+      "patch": {
+        "tags": [
+          "Comment"
+        ],
+        "summary": "Update komentar",
+        "description": "Hanya owner comment.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "Comment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentUpdateRequest"
+              },
+              "example": {
+                "content": "Updated comment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comment updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Comment updated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to edit this comment",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Comment"
+        ],
+        "summary": "Hapus komentar",
+        "description": "Hanya owner comment.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "Comment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Comment deleted"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to delete this comment",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs": {
+      "post": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Buat club baru",
+        "description": "Creator otomatis menjadi member dengan role OWNER.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubRequest"
+              },
+              "example": {
+                "name": "Jogja Running Community",
+                "description": "Komunitas lari di Yogyakarta",
+                "isPrivate": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Club created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Club created",
+                  "data": {
+                    "id": "uuid",
+                    "ownerId": "uuid",
+                    "name": "Jogja Running Community",
+                    "description": "Komunitas lari di Yogyakarta",
+                    "isPrivate": false,
+                    "createdAt": "2026-09-07T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nama sudah dipakai",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Club name already taken",
+                  "errors": "CLUB_NAME_TAKEN"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "List semua club",
+        "description": "Diurutkan terbaru. Supports search by name.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Cari berdasarkan nama club",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clubs retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Clubs retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "ownerId": "uuid",
+                      "name": "Jogja Running Community",
+                      "description": "Komunitas lari di Yogyakarta",
+                      "isPrivate": false,
+                      "createdAt": "2026-09-07T08:00:00.000Z"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/me": {
+      "get": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "List club yang diikuti user saat ini",
+        "description": "Sebagai member dengan role apapun, diurutkan berdasarkan joinedAt terbaru.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My clubs retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "My clubs retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "ownerId": "uuid",
+                      "name": "Jogja Running Community",
+                      "description": "Komunitas lari di Yogyakarta",
+                      "isPrivate": false,
+                      "createdAt": "2026-09-07T08:00:00.000Z"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}": {
+      "get": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Detail club",
+        "description": "Private club hanya menampilkan info terbatas ke non-member.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Club retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Club retrieved",
+                  "data": {
+                    "id": "uuid",
+                    "name": "Jogja Running Community",
+                    "description": "...",
+                    "isPrivate": false,
+                    "memberCount": 42,
+                    "membership": {
+                      "role": "MEMBER",
+                      "joinedAt": "2026-09-01T08:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Club tidak ditemukan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Club not found",
+                  "errors": "CLUB_NOT_FOUND"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Update club",
+        "description": "Hanya OWNER.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClubRequest"
+              },
+              "example": {
+                "name": "New Name",
+                "description": "Updated description",
+                "isPrivate": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Club updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Club updated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only the club owner can update club details",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Hapus club",
+        "description": "Hapus club beserta semua member dan posts (cascade). Hanya OWNER.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Club deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Club deleted"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only the club owner can delete this club",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}/join": {
+      "post": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Join club",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Joined club successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Joined club successfully",
+                  "data": {
+                    "id": "uuid",
+                    "clubId": "uuid",
+                    "userId": "uuid",
+                    "role": "MEMBER",
+                    "joinedAt": "2026-09-07T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Sudah member",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Already a member of this club",
+                  "errors": "ALREADY_MEMBER"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}/leave": {
+      "delete": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Leave club",
+        "description": "Owner tidak bisa leave.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Left club successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Left club successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Owner mencoba leave",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Club owner cannot leave. Transfer ownership or delete the club.",
+                  "errors": "OWNER_CANNOT_LEAVE"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}/members": {
+      "get": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "List members club",
+        "description": "Diurutkan berdasarkan joinedAt terbaru. Private club: hanya member yang bisa akses.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Members retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Members retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "clubId": "uuid",
+                      "userId": "uuid",
+                      "role": "MEMBER"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}/members/{userId}": {
+      "delete": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Kick member dari club",
+        "description": "OWNER atau ADMIN.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Member removed"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tidak punya izin",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only OWNER or ADMIN can remove members",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mencoba remove owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Cannot remove the club owner",
+                  "errors": "CANNOT_REMOVE_OWNER"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}/members/{userId}/role": {
+      "patch": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Update role member",
+        "description": "Hanya OWNER. Role yang bisa di-set: MEMBER, ADMIN.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRoleRequest"
+              },
+              "example": {
+                "role": "ADMIN"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member role updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Member role updated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan owner",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Only the club owner can change member roles",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}/posts": {
+      "post": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Buat post di club",
+        "description": "Hanya member club. Harus punya content atau activityId.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubPostRequest"
+              },
+              "example": {
+                "content": "Great group run today!",
+                "activityId": "uuid"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Post created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Post created",
+                  "data": {
+                    "id": "uuid",
+                    "clubId": "uuid",
+                    "userId": "uuid",
+                    "content": "Great group run today!",
+                    "activityId": "uuid",
+                    "createdAt": "2026-09-07T09:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan member",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You must be a member to post in this club",
+                  "errors": "NOT_A_MEMBER"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "List posts di club",
+        "description": "Diurutkan terbaru. Private club: hanya member yang bisa akses.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Nomor halaman",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Jumlah item per halaman (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Club posts retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Club posts retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "clubId": "uuid",
+                      "userId": "uuid",
+                      "content": "Great group run today!"
+                    }
+                  ],
+                  "total": 42,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs/{id}/posts/{postId}": {
+      "delete": {
+        "tags": [
+          "Club"
+        ],
+        "summary": "Hapus post dari club",
+        "description": "Post owner atau OWNER/ADMIN.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Club ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "description": "Post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post deleted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Post deleted"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tidak punya izin",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "You do not have permission to delete this post",
+                  "errors": "FORBIDDEN"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
