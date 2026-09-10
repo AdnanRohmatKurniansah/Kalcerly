@@ -63,6 +63,22 @@
     {
       "name": "Club",
       "description": "Komunitas fitness (clubs)"
+    },
+    {
+      "name": "Statistics",
+      "description": "Statistik kumulatif user dari aktivitas yang sudah VERIFIED"
+    },
+    {
+      "name": "Personal Records",
+      "description": "Rekor pribadi per tipe aktivitas (jarak terpanjang, durasi terpanjang, kecepatan tertinggi, pace tercepat)"
+    },
+    {
+      "name": "Achievements",
+      "description": "Master data achievement dan progress/unlock status user"
+    },
+    {
+      "name": "Leaderboard",
+      "description": "Ranking user berdasarkan total jarak dan current streak"
     }
   ],
   "components": {
@@ -5881,6 +5897,281 @@
               }
             }
           }
+        }
+      }
+    },
+    "/api/stats/me": {
+      "get": {
+        "tags": ["Statistics"],
+        "summary": "Statistik milik user yang sedang login",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Statistik berhasil diambil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Statistics retrieved",
+                  "data": {
+                    "userId": "uuid",
+                    "totalActivities": 25,
+                    "totalDistanceMeters": 150000,
+                    "totalDurationSeconds": 54000,
+                    "totalElevationMeters": 800,
+                    "totalCalories": 6000,
+                    "totalWalkingDistanceMeters": 20000,
+                    "totalRunningDistanceMeters": 100000,
+                    "totalCyclingDistanceMeters": 30000,
+                    "currentStreak": 5,
+                    "longestStreak": 14
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/users/{userId}": {
+      "get": {
+        "tags": ["Statistics"],
+        "summary": "Statistik user tertentu",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Statistik berhasil diambil" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/me/records": {
+      "get": {
+        "tags": ["Personal Records"],
+        "summary": "Personal records milik user yang sedang login",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["WALKING", "RUNNING", "CYCLING"] },
+            "description": "Filter berdasarkan tipe aktivitas"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personal records berhasil diambil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Personal records retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "activityType": "RUNNING",
+                      "recordType": "LONGEST_DISTANCE",
+                      "distanceMeters": 21100,
+                      "activityId": "uuid",
+                      "achievedAt": "2026-09-01T07:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/users/{userId}/records": {
+      "get": {
+        "tags": ["Personal Records"],
+        "summary": "Personal records user tertentu",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["WALKING", "RUNNING", "CYCLING"] }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Personal records berhasil diambil" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/achievements": {
+      "get": {
+        "tags": ["Achievements"],
+        "summary": "Daftar semua achievement yang aktif (master data)",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Achievements berhasil diambil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Achievements retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "code": "FIRST_ACTIVITY",
+                      "name": "First Activity",
+                      "description": "Complete your first activity",
+                      "type": "MILESTONE",
+                      "requirementValue": 1,
+                      "isActive": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/me/achievements": {
+      "get": {
+        "tags": ["Achievements"],
+        "summary": "Achievement milik user yang sedang login beserta progress dan status unlock",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Achievements user berhasil diambil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "My achievements retrieved",
+                  "data": [
+                    {
+                      "id": "uuid",
+                      "userId": "uuid",
+                      "achievementId": "uuid",
+                      "progressValue": 5,
+                      "unlockedAt": "2026-09-01T07:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/users/{userId}/achievements": {
+      "get": {
+        "tags": ["Achievements"],
+        "summary": "Achievement user tertentu",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Achievements user berhasil diambil" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/leaderboard/distance": {
+      "get": {
+        "tags": ["Leaderboard"],
+        "summary": "Leaderboard berdasarkan total jarak, diurutkan dari jarak terbesar",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["WALKING", "RUNNING", "CYCLING", "TOTAL"], "default": "TOTAL" },
+            "description": "Tipe aktivitas untuk filter jarak"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distance leaderboard berhasil diambil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Distance leaderboard retrieved",
+                  "data": [
+                    {
+                      "rank": 1,
+                      "userId": "uuid",
+                      "totalDistanceMeters": 500000,
+                      "totalActivities": 50,
+                      "currentStreak": 10
+                    },
+                    {
+                      "rank": 2,
+                      "userId": "uuid",
+                      "totalDistanceMeters": 350000,
+                      "totalActivities": 35,
+                      "currentStreak": 5
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/stats/leaderboard/streak": {
+      "get": {
+        "tags": ["Leaderboard"],
+        "summary": "Leaderboard berdasarkan current streak, diurutkan dari streak terpanjang",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Streak leaderboard berhasil diambil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Streak leaderboard retrieved",
+                  "data": [
+                    {
+                      "rank": 1,
+                      "userId": "uuid",
+                      "currentStreak": 30,
+                      "longestStreak": 45,
+                      "totalActivities": 80
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
         }
       }
     }

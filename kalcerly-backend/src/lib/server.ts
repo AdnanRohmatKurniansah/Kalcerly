@@ -10,6 +10,7 @@ import goalRoutes from '../routes/goal.routes'
 import rewardRoutes from '../routes/reward.routes'
 import socialRoutes from '../routes/social.routes'
 import clubRoutes from '../routes/club.routes'
+import statsRoutes from '../routes/stats.routes'
 import { errorMiddleware } from '../middlewares/error.middleware'
 import path from 'path'
 import fs from 'fs'
@@ -91,6 +92,7 @@ const createServer = (): Application => {
   app.use('/api/rewards', rewardRoutes)
   app.use('/api/social', socialRoutes)
   app.use('/api/clubs', clubRoutes)
+  app.use('/api/stats', statsRoutes)
 
   app.use(errorMiddleware)
 

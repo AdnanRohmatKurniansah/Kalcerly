@@ -2544,6 +2544,261 @@ Hapus post dari club. Pemilik post bisa hapus post miliknya. OWNER dan ADMIN bis
 
 ---
 
+## Statistics, Personal Records, Achievements & Leaderboards
+
+Domain ini menampilkan statistik kumulatif user, rekor pribadi, achievement/badge, dan leaderboard. Semua endpoint memerlukan Bearer token. Semua data di-update secara otomatis setiap kali ada activity yang mencapai status `VERIFIED`.
+
+**Statistics calculation:**
+- `totalDistanceMeters` — akumulasi `distanceMeters` dari semua activity VERIFIED
+- `totalDurationSeconds` — akumulasi `durationSeconds`
+- `totalElevationMeters` — akumulasi `elevationMeters`
+- `totalCalories` — akumulasi `calories`
+- `totalWalkingDistanceMeters`, `totalRunningDistanceMeters`, `totalCyclingDistanceMeters` — dipisah per tipe
+- `currentStreak` / `longestStreak` — dihitung dari streak hari berturut-turut beraktivitas
+
+**Personal record types:**
+
+| Record Type | Keterangan | Kondisi update |
+|---|---|---|
+| `LONGEST_DISTANCE` | Jarak terpanjang per tipe | distanceMeters lebih besar dari existing |
+| `LONGEST_DURATION` | Durasi terlama per tipe | durationSeconds lebih besar dari existing |
+| `HIGHEST_SPEED` | Kecepatan tertinggi per tipe | averageSpeedMps lebih besar dari existing |
+| `FASTEST_1K` | Pace tercepat 1km (RUNNING) | averagePaceSeconds lebih kecil, jarak ≥ 1000m |
+| `FASTEST_5K` | Pace tercepat 5km (RUNNING) | averagePaceSeconds lebih kecil, jarak ≥ 5000m |
+| `FASTEST_10K` | Pace tercepat 10km (RUNNING) | averagePaceSeconds lebih kecil, jarak ≥ 10000m |
+
+**Achievement unlock conditions:**
+
+| Code | Kondisi unlock |
+|---|---|
+| `FIRST_ACTIVITY` | totalActivities >= 1 |
+| `FIRST_RUN` | Activity type RUNNING pertama |
+| `FIRST_WALK` | Activity type WALKING pertama |
+| `FIRST_CYCLING` | Activity type CYCLING pertama |
+| `ACTIVITIES_10` | totalActivities >= 10 |
+| `ACTIVITIES_50` | totalActivities >= 50 |
+| `ACTIVITIES_100` | totalActivities >= 100 |
+| `DISTANCE_10K` | totalDistanceMeters >= 10.000m |
+| `DISTANCE_50K` | totalDistanceMeters >= 50.000m |
+| `DISTANCE_100K` | totalDistanceMeters >= 100.000m |
+| `DISTANCE_500K` | totalDistanceMeters >= 500.000m |
+| `STREAK_7` | currentStreak >= 7 hari |
+| `STREAK_30` | currentStreak >= 30 hari |
+
+Achievement yang sudah unlock tidak akan di-unlock ulang. Progress tetap di-update walau sudah unlock.
+
+**Leaderboard sorting:**
+- Distance leaderboard — diurutkan `totalDistanceMeters` (atau per tipe) dari terbesar, rank dimulai dari 1
+- Streak leaderboard — diurutkan `currentStreak` dari terbesar, hanya user dengan `currentStreak > 0`
+
+---
+
+### GET `/api/stats/me`
+
+🔒 **Requires Bearer token**
+
+Statistik kumulatif user yang sedang login.
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Statistics retrieved",
+  "data": {
+    "userId": "uuid",
+    "totalActivities": 25,
+    "totalDistanceMeters": 150000,
+    "totalDurationSeconds": 54000,
+    "totalElevationMeters": 800,
+    "totalCalories": 6000,
+    "totalWalkingDistanceMeters": 20000,
+    "totalRunningDistanceMeters": 100000,
+    "totalCyclingDistanceMeters": 30000,
+    "currentStreak": 5,
+    "longestStreak": 14
+  }
+}
+```
+
+Jika belum ada data (belum ada activity VERIFIED), semua field bernilai `0`.
+
+---
+
+### GET `/api/stats/users/:userId`
+
+🔒 **Requires Bearer token**
+
+Statistik kumulatif user tertentu.
+
+---
+
+### GET `/api/stats/me/records`
+
+🔒 **Requires Bearer token**
+
+Personal records milik user yang sedang login, diurutkan berdasarkan `achievedAt` terbaru.
+
+**Query params:** `activityType` — opsional, filter by `WALKING`, `RUNNING`, atau `CYCLING`
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Personal records retrieved",
+  "data": [
+    {
+      "id": "uuid",
+      "userId": "uuid",
+      "activityType": "RUNNING",
+      "recordType": "LONGEST_DISTANCE",
+      "distanceMeters": 21100,
+      "durationSeconds": null,
+      "paceSeconds": null,
+      "speedMps": null,
+      "activityId": "uuid",
+      "achievedAt": "2026-09-01T07:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET `/api/stats/users/:userId/records`
+
+🔒 **Requires Bearer token**
+
+Personal records user tertentu.
+
+**Query params:** `activityType` — opsional
+
+---
+
+### GET `/api/stats/achievements`
+
+🔒 **Requires Bearer token**
+
+Daftar semua achievement aktif (master data). Tidak bergantung pada user — ini adalah katalog achievement yang tersedia.
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Achievements retrieved",
+  "data": [
+    {
+      "id": "uuid",
+      "code": "FIRST_ACTIVITY",
+      "name": "First Activity",
+      "description": "Complete your first activity",
+      "type": "MILESTONE",
+      "requirementValue": 1,
+      "isActive": true
+    }
+  ]
+}
+```
+
+---
+
+### GET `/api/stats/me/achievements`
+
+🔒 **Requires Bearer token**
+
+Achievement milik user yang sedang login beserta progress dan status unlock (`unlockedAt`).
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "My achievements retrieved",
+  "data": [
+    {
+      "id": "uuid",
+      "userId": "uuid",
+      "achievementId": "uuid",
+      "progressValue": 25,
+      "unlockedAt": "2026-09-01T07:00:00.000Z"
+    }
+  ]
+}
+```
+
+`unlockedAt` bernilai `null` jika belum unlock. `progressValue` menunjukkan progress saat ini terhadap `requirementValue` achievement.
+
+---
+
+### GET `/api/stats/users/:userId/achievements`
+
+🔒 **Requires Bearer token**
+
+Achievement user tertentu.
+
+---
+
+### GET `/api/stats/leaderboard/distance`
+
+🔒 **Requires Bearer token**
+
+Leaderboard berdasarkan total jarak, diurutkan dari terbesar. Rank dimulai dari 1.
+
+**Query params:**
+- `type` — `WALKING`, `RUNNING`, `CYCLING`, atau `TOTAL` (default)
+- `limit` — default 50, max 100
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Distance leaderboard retrieved",
+  "data": [
+    {
+      "rank": 1,
+      "userId": "uuid",
+      "totalDistanceMeters": 500000,
+      "totalActivities": 50,
+      "currentStreak": 10
+    },
+    {
+      "rank": 2,
+      "userId": "uuid",
+      "totalDistanceMeters": 350000,
+      "totalActivities": 35,
+      "currentStreak": 5
+    }
+  ]
+}
+```
+
+---
+
+### GET `/api/stats/leaderboard/streak`
+
+🔒 **Requires Bearer token**
+
+Leaderboard berdasarkan `currentStreak`, diurutkan dari terpanjang. Hanya user dengan `currentStreak > 0` yang masuk.
+
+**Query params:** `limit` — default 50, max 100
+
+**Response** `200`
+```json
+{
+  "success": true,
+  "message": "Streak leaderboard retrieved",
+  "data": [
+    {
+      "rank": 1,
+      "userId": "uuid",
+      "currentStreak": 30,
+      "longestStreak": 45,
+      "totalActivities": 80
+    }
+  ]
+}
+```
+
+---
+
 # Database Schema
 
 Database: **PostgreSQL + Drizzle ORM** — semua ID menggunakan UUID.
