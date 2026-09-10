@@ -807,8 +807,8 @@
               },
               "example": {
                 "fullname": "Adnan Rohmat",
-                "email": "adnan@example.com",
-                "password": "password123"
+                "email": "adnan@gmail.com",
+                "password": "Password123#"
               }
             }
           }
