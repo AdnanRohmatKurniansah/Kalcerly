@@ -14,18 +14,18 @@ export const CreateRoute = async (req: Request, res: Response, next: NextFunctio
   try {
     const userId = (req as AuthRequest).userId
     if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED')
-    const v = CreateRouteSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const route = await routeService.createRoute(userId, v.data)
+    const validationData = CreateRouteSchema.safeParse(req.body)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const route = await routeService.createRoute(userId, validationData.data)
     return successResponse(res, 'Route created', route, 201)
   } catch (err) { next(err) }
 }
 
 export const GetRoutes = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const v = ListRoutesSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await routeService.listPublicRoutes(v.data.page, v.data.limit)
+    const validationData = ListRoutesSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const result = await routeService.listPublicRoutes(validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Routes retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
@@ -47,9 +47,9 @@ export const UpdateRoute = async (req: Request, res: Response, next: NextFunctio
     if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED')
     const id = getId(req)
     if (!id) throw new AppError('Route ID required', 400, 'ROUTE_ID_REQUIRED')
-    const v = UpdateRouteSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const route = await routeService.updateRoute(userId, id, v.data)
+    const validationData = UpdateRouteSchema.safeParse(req.body)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const route = await routeService.updateRoute(userId, id, validationData.data)
     return successResponse(res, 'Route updated', route)
   } catch (err) { next(err) }
 }
@@ -91,9 +91,9 @@ export const GetSavedRoutes = async (req: Request, res: Response, next: NextFunc
   try {
     const userId = (req as AuthRequest).userId
     if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED')
-    const v = ListRoutesSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const routes = await routeService.getSavedRoutes(userId, v.data.page, v.data.limit)
+    const validationData = ListRoutesSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const routes = await routeService.getSavedRoutes(userId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Saved routes retrieved', routes)
   } catch (err) { next(err) }
 }

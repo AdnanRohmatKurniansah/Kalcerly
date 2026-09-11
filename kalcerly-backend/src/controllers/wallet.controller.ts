@@ -23,7 +23,7 @@ export const GenerateNonce = async (req: Request, res: Response, next: NextFunct
   try {
     const validation = WalletNonceSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     const result = await walletAuthService.generateNonce(validation.data.address)
     return successResponse(res, 'Nonce generated', result)
@@ -39,7 +39,7 @@ export const VerifyWallet = async (req: Request, res: Response, next: NextFuncti
 
     const validation = WalletVerifySchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { address, signature, message, chainId } = validation.data
@@ -57,7 +57,7 @@ export const SetPrimaryWallet = async (req: Request, res: Response, next: NextFu
 
     const validation = SetPrimaryWalletSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const wallet = await walletAuthService.setPrimaryWallet(userId, validation.data.walletId)

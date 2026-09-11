@@ -59,7 +59,7 @@ export const ListRewards = async (req: Request, res: Response, next: NextFunctio
 
     const validation = PaginationSchema.safeParse(req.query)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { page, limit } = validation.data
@@ -84,7 +84,7 @@ export const ListTransactions = async (req: Request, res: Response, next: NextFu
 
     const validation = PaginationSchema.safeParse(req.query)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { page, limit } = validation.data

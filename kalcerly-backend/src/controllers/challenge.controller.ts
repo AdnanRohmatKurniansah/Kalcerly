@@ -18,7 +18,7 @@ export const CreateChallenge = async (req: Request, res: Response, next: NextFun
 
     const validation = CreateChallengeSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const challenge = await challengeService.createChallenge(userId, validation.data)
@@ -35,7 +35,7 @@ export const ListChallenges = async (req: Request, res: Response, next: NextFunc
 
     const validation = ListChallengesSchema.safeParse(req.query)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { page, limit } = validation.data
@@ -106,7 +106,7 @@ export const AddProgress = async (req: Request, res: Response, next: NextFunctio
 
     const validation = AddProgressSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const result = await challengeService.addProgress(userId, challengeId, validation.data.activityId)
@@ -123,7 +123,7 @@ export const GetMyParticipations = async (req: Request, res: Response, next: Nex
 
     const validation = ListChallengesSchema.safeParse(req.query)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { page, limit } = validation.data
@@ -149,7 +149,7 @@ export const GetParticipants = async (req: Request, res: Response, next: NextFun
 
     const validation = ListChallengesSchema.safeParse(req.query)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { page, limit } = validation.data

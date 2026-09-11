@@ -26,13 +26,11 @@ function getParam(req: Request, key: string, label: string): string {
   return val
 }
 
-// ─── Clubs ────────────────────────────────────────────────────────────────────
-
 export const CreateClub = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req)
     const v = CreateClubSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
+    if (!v.success) throw new AppError('Validation failed', 400, v.error.flatten().fieldErrors)
     const club = await clubService.createClub(userId, v.data)
     return successResponse(res, 'Club created', club, 201)
   } catch (err) { next(err) }
@@ -42,7 +40,7 @@ export const ListClubs = async (req: Request, res: Response, next: NextFunction)
   try {
     getUserId(req)
     const v = SearchSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
+    if (!v.success) throw new AppError('Validation failed', 400, v.error.flatten().fieldErrors)
     const result = await clubService.listClubs(v.data.page, v.data.limit, v.data.search)
     return successResponse(res, 'Clubs retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
@@ -64,7 +62,7 @@ export const UpdateClub = async (req: Request, res: Response, next: NextFunction
     const userId = getUserId(req)
     const clubId = getParam(req, 'id', 'Club ID')
     const v = UpdateClubSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
+    if (!v.success) throw new AppError('Validation failed', 400, v.error.flatten().fieldErrors)
     const club = await clubService.updateClub(userId, clubId, v.data)
     return successResponse(res, 'Club updated', club)
   } catch (err) { next(err) }
@@ -78,8 +76,6 @@ export const DeleteClub = async (req: Request, res: Response, next: NextFunction
     return successResponse(res, 'Club deleted')
   } catch (err) { next(err) }
 }
-
-// ─── Membership ───────────────────────────────────────────────────────────────
 
 export const JoinClub = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -114,9 +110,9 @@ export const UpdateMemberRole = async (req: Request, res: Response, next: NextFu
     const requesterId = getUserId(req)
     const clubId = getParam(req, 'id', 'Club ID')
     const targetUserId = getParam(req, 'userId', 'User ID')
-    const v = UpdateMemberRoleSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const member = await clubService.updateMemberRole(requesterId, clubId, targetUserId, v.data.role)
+    const validationData = UpdateMemberRoleSchema.safeParse(req.body)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const member = await clubService.updateMemberRole(requesterId, clubId, targetUserId, validationData.data.role)
     return successResponse(res, 'Member role updated', member)
   } catch (err) { next(err) }
 }
@@ -125,9 +121,11 @@ export const GetMembers = async (req: Request, res: Response, next: NextFunction
   try {
     const userId = getUserId(req)
     const clubId = getParam(req, 'id', 'Club ID')
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await clubService.getMembers(clubId, userId, v.data.page, v.data.limit)
+    const validationData = PaginationSchema.safeParse(req.query)
+    if (!validationData.success) {
+      throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    }
+    const result = await clubService.getMembers(clubId, userId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Members retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
@@ -137,24 +135,24 @@ export const GetMembers = async (req: Request, res: Response, next: NextFunction
 export const GetMyClubs = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req)
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await clubService.getMyClubs(userId, v.data.page, v.data.limit)
+    const validationData = PaginationSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const result = await clubService.getMyClubs(userId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'My clubs retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
   } catch (err) { next(err) }
 }
 
-// ─── Club Posts ───────────────────────────────────────────────────────────────
-
 export const CreateClubPost = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req)
     const clubId = getParam(req, 'id', 'Club ID')
-    const v = CreateClubPostSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const post = await clubService.createPost(userId, clubId, v.data)
+    const validationData = CreateClubPostSchema.safeParse(req.body)
+    if (!validationData.success) {
+      throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    }
+    const post = await clubService.createPost(userId, clubId, validationData.data)
     return successResponse(res, 'Post created', post, 201)
   } catch (err) { next(err) }
 }
@@ -163,13 +161,15 @@ export const GetClubPosts = async (req: Request, res: Response, next: NextFuncti
   try {
     const userId = getUserId(req)
     const clubId = getParam(req, 'id', 'Club ID')
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await clubService.getClubPosts(clubId, userId, v.data.page, v.data.limit)
+    const validationData = PaginationSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const result = await clubService.getClubPosts(clubId, userId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Club posts retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
-  } catch (err) { next(err) }
+  } catch (err) { 
+    next(err) 
+  }
 }
 
 export const DeleteClubPost = async (req: Request, res: Response, next: NextFunction) => {

@@ -23,7 +23,7 @@ export const Register = async (req: Request, res: Response, next: NextFunction) 
   try {
     const validation = RegisterSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     const { fullname, email, password } = validation.data
     const result = await authService.register(fullname, email, password)
@@ -37,7 +37,7 @@ export const VerifyEmail = async (req: Request, res: Response, next: NextFunctio
   try {
     const validation = VerifyEmailSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     await emailVerificationService.verifyToken(validation.data.token)
     return successResponse(res, 'Email verified successfully')
@@ -50,7 +50,7 @@ export const ResendVerification = async (req: Request, res: Response, next: Next
   try {
     const validation = ResendVerificationSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     await emailVerificationService.resendVerification(validation.data.email)
     return successResponse(res, 'Verification email sent')
@@ -63,7 +63,7 @@ export const Login = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const validation = LoginSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     const result = await authService.login(validation.data.email, validation.data.password)
     return successResponse(res, 'Login successfully', result)
@@ -76,7 +76,7 @@ export const GoogleAuth = async (req: Request, res: Response, next: NextFunction
   try {
     const validation = GoogleAuthSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     const result = await googleAuthService.authenticateWithGoogle(validation.data.credential)
     return successResponse(res, 'Google authentication successful', result)
@@ -89,7 +89,7 @@ export const Refresh = async (req: Request, res: Response, next: NextFunction) =
   try {
     const validation = RefreshTokenSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     const result = await authService.refreshTokens(validation.data.refreshToken)
     return successResponse(res, 'Token refreshed', result)
@@ -102,7 +102,7 @@ export const Logout = async (req: Request, res: Response, next: NextFunction) =>
   try {
     const validation = RefreshTokenSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
     await authService.logout(validation.data.refreshToken)
     return successResponse(res, 'Logged out successfully')
@@ -129,7 +129,7 @@ export const UpdateProfile = async (req: Request, res: Response, next: NextFunct
 
     const validation = UpdateProfileSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const avatarFile = (req as Request & { file?: Express.Multer.File }).file

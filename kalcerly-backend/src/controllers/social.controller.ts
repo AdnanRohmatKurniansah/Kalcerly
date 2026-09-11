@@ -25,28 +25,24 @@ function getParam(req: Request, key: string, label: string): string {
   return val
 }
 
-// ─── Feed ─────────────────────────────────────────────────────────────────────
-
 export const GetFeed = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req)
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await socialService.getFeed(userId, v.data.page, v.data.limit)
+    const validation = PaginationSchema.safeParse(req.query)
+    if (!validation.success) throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
+    const result = await socialService.getFeed(userId, validation.data.page, validation.data.limit)
     return successResponse(res, 'Feed retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
   } catch (err) { next(err) }
 }
 
-// ─── Posts ────────────────────────────────────────────────────────────────────
-
 export const CreatePost = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req)
-    const v = CreatePostSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const post = await socialService.createPost(userId, v.data)
+    const validationData = CreatePostSchema.safeParse(req.body)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const post = await socialService.createPost(userId, validationData.data)
     return successResponse(res, 'Post created', post, 201)
   } catch (err) { next(err) }
 }
@@ -64,9 +60,9 @@ export const GetUserPosts = async (req: Request, res: Response, next: NextFuncti
   try {
     const userId = getUserId(req)
     const targetUserId = getParam(req, 'userId', 'User ID')
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await socialService.getUserPosts(targetUserId, userId, v.data.page, v.data.limit)
+    const validationData = PaginationSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const result = await socialService.getUserPosts(targetUserId, userId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Posts retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
@@ -77,9 +73,9 @@ export const UpdatePost = async (req: Request, res: Response, next: NextFunction
   try {
     const userId = getUserId(req)
     const postId = getParam(req, 'id', 'Post ID')
-    const v = UpdatePostSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const post = await socialService.updatePost(userId, postId, v.data)
+    const validationData = UpdatePostSchema.safeParse(req.body)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const post = await socialService.updatePost(userId, postId, validationData.data)
     return successResponse(res, 'Post updated', post)
   } catch (err) { next(err) }
 }
@@ -92,8 +88,6 @@ export const DeletePost = async (req: Request, res: Response, next: NextFunction
     return successResponse(res, 'Post deleted')
   } catch (err) { next(err) }
 }
-
-// ─── Follows ──────────────────────────────────────────────────────────────────
 
 export const FollowUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -115,11 +109,11 @@ export const UnfollowUser = async (req: Request, res: Response, next: NextFuncti
 
 export const GetFollowers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    getUserId(req) // ensure authenticated
+    getUserId(req) 
     const targetUserId = getParam(req, 'userId', 'User ID')
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await socialService.getFollowers(targetUserId, v.data.page, v.data.limit)
+    const validationData = PaginationSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const result = await socialService.getFollowers(targetUserId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Followers retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
@@ -130,16 +124,14 @@ export const GetFollowing = async (req: Request, res: Response, next: NextFuncti
   try {
     getUserId(req)
     const targetUserId = getParam(req, 'userId', 'User ID')
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await socialService.getFollowing(targetUserId, v.data.page, v.data.limit)
+    const validationData = PaginationSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const result = await socialService.getFollowing(targetUserId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Following retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
   } catch (err) { next(err) }
 }
-
-// ─── Kudos ────────────────────────────────────────────────────────────────────
 
 export const GiveKudo = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -159,15 +151,13 @@ export const RemoveKudo = async (req: Request, res: Response, next: NextFunction
   } catch (err) { next(err) }
 }
 
-// ─── Comments ─────────────────────────────────────────────────────────────────
-
 export const CreateComment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req)
     const postId = getParam(req, 'id', 'Post ID')
-    const v = CreateCommentSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const comment = await socialService.createComment(userId, postId, v.data)
+    const validationData = CreateCommentSchema.safeParse(req.body)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const comment = await socialService.createComment(userId, postId, validationData.data)
     return successResponse(res, 'Comment created', comment, 201)
   } catch (err) { next(err) }
 }
@@ -176,9 +166,9 @@ export const GetComments = async (req: Request, res: Response, next: NextFunctio
   try {
     getUserId(req)
     const postId = getParam(req, 'id', 'Post ID')
-    const v = PaginationSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await socialService.getComments(postId, v.data.page, v.data.limit)
+    const validationData = PaginationSchema.safeParse(req.query)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const result = await socialService.getComments(postId, validationData.data.page, validationData.data.limit)
     return successResponse(res, 'Comments retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
@@ -189,9 +179,9 @@ export const UpdateComment = async (req: Request, res: Response, next: NextFunct
   try {
     const userId = getUserId(req)
     const commentId = getParam(req, 'commentId', 'Comment ID')
-    const v = UpdateCommentSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const comment = await socialService.updateComment(userId, commentId, v.data.content)
+    const validationData = UpdateCommentSchema.safeParse(req.body)
+    if (!validationData.success) throw new AppError('Validation failed', 400, validationData.error.flatten().fieldErrors)
+    const comment = await socialService.updateComment(userId, commentId, validationData.data.content)
     return successResponse(res, 'Comment updated', comment)
   } catch (err) { next(err) }
 }

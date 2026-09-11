@@ -18,18 +18,18 @@ export const CreateSegment = async (req: Request, res: Response, next: NextFunct
   try {
     const userId = (req as AuthRequest).userId
     if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED')
-    const v = CreateSegmentSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const segment = await segmentService.createSegment(userId, v.data)
+    const validation = CreateSegmentSchema.safeParse(req.body)
+    if (!validation.success) throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
+    const segment = await segmentService.createSegment(userId, validation.data)
     return successResponse(res, 'Segment created', segment, 201)
   } catch (err) { next(err) }
 }
 
 export const GetSegments = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const v = ListSegmentsSchema.safeParse(req.query)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const result = await segmentService.listSegments(v.data.page, v.data.limit)
+    const validation = ListSegmentsSchema.safeParse(req.query)
+    if (!validation.success) throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
+    const result = await segmentService.listSegments(validation.data.page, validation.data.limit)
     return successResponse(res, 'Segments retrieved', result.data, 200, {
       total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages,
     })
@@ -62,9 +62,9 @@ export const RecordEffort = async (req: Request, res: Response, next: NextFuncti
     if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED')
     const id = getId(req)
     if (!id) throw new AppError('Segment ID required', 400, 'SEGMENT_ID_REQUIRED')
-    const v = CreateSegmentEffortSchema.safeParse(req.body)
-    if (!v.success) throw new AppError('Validation failed', 400, v.error.issues)
-    const effort = await segmentService.recordEffort(userId, id, v.data)
+    const validation = CreateSegmentEffortSchema.safeParse(req.body)
+    if (!validation.success) throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
+    const effort = await segmentService.recordEffort(userId, id, validation.data)
     return successResponse(res, 'Segment effort recorded', effort, 201)
   } catch (err) { next(err) }
 }

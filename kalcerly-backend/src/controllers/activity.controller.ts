@@ -19,7 +19,7 @@ export const CreateActivity = async (req: Request, res: Response, next: NextFunc
 
     const validation = CreateActivitySchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const activity = await activityService.createActivity(userId, validation.data)
@@ -36,7 +36,7 @@ export const GetMyActivities = async (req: Request, res: Response, next: NextFun
 
     const validation = ListActivitiesSchema.safeParse(req.query)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { page, limit } = validation.data
@@ -77,7 +77,7 @@ export const UpdateActivity = async (req: Request, res: Response, next: NextFunc
 
     const validation = UpdateActivitySchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const updated = await activityService.updateActivity(userId, activityId, validation.data)
@@ -112,7 +112,7 @@ export const UploadPoints = async (req: Request, res: Response, next: NextFuncti
 
     const validation = UploadPointsSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const result = await activityService.uploadPoints(userId, activityId, validation.data)

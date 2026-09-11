@@ -18,7 +18,7 @@ export const CreateGoal = async (req: Request, res: Response, next: NextFunction
 
     const validation = CreateGoalSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const goal = await goalService.createGoal(userId, validation.data)
@@ -35,7 +35,7 @@ export const ListGoals = async (req: Request, res: Response, next: NextFunction)
 
     const validation = ListGoalsSchema.safeParse(req.query)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const { page, limit } = validation.data
@@ -91,7 +91,7 @@ export const UpdateProgress = async (req: Request, res: Response, next: NextFunc
 
     const validation = UpdateGoalProgressSchema.safeParse(req.body)
     if (!validation.success) {
-      throw new AppError('Validation failed', 400, validation.error.issues)
+      throw new AppError('Validation failed', 400, validation.error.flatten().fieldErrors)
     }
 
     const result = await goalService.updateProgress(userId, goalId, validation.data.activityId)
