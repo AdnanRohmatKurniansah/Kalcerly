@@ -6,6 +6,8 @@ import { Home } from "./pages/Home";
 import { KetentuanLayanan } from "./pages/KetentuanLayanan";
 import { KebijakanPrivasi } from "./pages/KebijakanPrivasi";
 import { PedomanKomunitas } from "./pages/PedomanKomunitas";
+import { VerifyEmail } from "./pages/VerifyEmail";
+import { VerifyEmailSuccess } from "./pages/VerifyEmailSuccess";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -42,6 +44,8 @@ function App() {
           <Route path="/ketentuan-layanan" element={<KetentuanLayanan />} />
           <Route path="/kebijakan-privasi" element={<KebijakanPrivasi />} />
           <Route path="/pedoman-komunitas" element={<PedomanKomunitas />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/verify-email/success" element={<VerifyEmailSuccess />} />
         </Routes>
       </ThemeProvider>
     </BrowserRouter>
