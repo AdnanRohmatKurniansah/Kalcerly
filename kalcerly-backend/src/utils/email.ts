@@ -34,15 +34,14 @@ export const sendVerificationEmail = async (
 
   <body style="margin:0;
       padding:0;
-      background-color:#111317;
-      font-family:Arial,Helvetica,sans-serif; color:#f3f4f6;">
+      font-family:Arial,Helvetica,sans-serif; color:#111317;">
     <table
       width="100%"
       cellpadding="0"
       cellspacing="0"
       border="0"
       style="
-        background-color:#111317;
+        background-color:#f3f4f6;
         padding:48px 20px;
       "
     >
@@ -55,16 +54,17 @@ export const sendVerificationEmail = async (
             border="0"
             style="
               max-width:560px;
-              background-color:#1f232b;
-              border:1px solid rgba(255,255,255,0.08);
+              background-color:#ffffff;
+              border:1px solid #e5e7eb;
               border-radius:20px;
               overflow:hidden;
+              box-shadow:0 1px 3px rgba(0,0,0,0.04);
             ">
             <tr>
               <td
                 style="
                   padding:32px 32px 28px;
-                  border-bottom:1px solid rgba(255,255,255,0.06);
+                  border-bottom:1px solid #e5e7eb;
                 ">
                 <table
                   cellpadding="0"
@@ -74,22 +74,8 @@ export const sendVerificationEmail = async (
                   <tr>
                     <td
                       valign="middle"
-                      style="
-                        width:40px;
-                        height:40px;
-                        background-color:#a3e635;
-                        border-radius:10px;
-                        text-align:center;
-                        vertical-align:middle;
-                      ">
-                      <span
-                        style="
-                          color:#111317;
-                          font-size:22px;
-                          line-height:40px;
-                          font-weight:900;
-                        "
-                      >⚡</span>
+                      >
+                      <img width="40px" src="https://app-kalcerly.vercel.app/logo.png" alt="Logo Kalcerly" />
                     </td>
                     <td
                       valign="middle"
@@ -98,7 +84,7 @@ export const sendVerificationEmail = async (
                       ">
                       <div
                         style="
-                          color:#f3f4f6;
+                          color:#111317;
                           font-size:18px;
                           line-height:20px;
                           font-weight:700;
@@ -131,7 +117,7 @@ export const sendVerificationEmail = async (
                 <p
                   style="
                     margin:0 0 12px;
-                    color:#a3e635;
+                    color:#65a30d;
                     font-size:12px;
                     line-height:18px;
                     font-weight:700;
@@ -143,7 +129,7 @@ export const sendVerificationEmail = async (
                 <h1
                   style="
                     margin:0 0 16px;
-                    color:#f3f4f6;
+                    color:#111317;
                     font-size:30px;
                     line-height:38px;
                     font-weight:700;
@@ -152,18 +138,18 @@ export const sendVerificationEmail = async (
                   Verify your email.
                 </h1>
                 <p style="margin:0 0 16px;
-                    color:#9ca3af;
+                    color:#4b5563;
                     font-size:15px;
                     line-height:25px;">
                   Welcome to
-                  <strong style="color:#f3f4f6;">
+                  <strong style="color:#111317;">
                     Kalcerly
                   </strong>.
                   Your account is almost ready.
                 </p>
                 <p style="
                     margin:0 0 30px;
-                    color:#9ca3af;
+                    color:#4b5563;
                     font-size:15px;
                     line-height:25px;">
                   Verify your email address to activate your account
@@ -190,7 +176,7 @@ export const sendVerificationEmail = async (
                           border-radius:999px;
                           font-size:15px;
                           line-height:20px;
-                          font-weight:700;
+                          font-weight:500;
                         ">
                         Verify My Email&nbsp;&nbsp;→
                       </a>
@@ -204,8 +190,8 @@ export const sendVerificationEmail = async (
                   border="0"
                   style="
                     margin-top:28px;
-                    background-color:#16181e;
-                    border:1px solid rgba(255,255,255,0.06);
+                    background-color:#f9fafb;
+                    border:1px solid #e5e7eb;
                     border-radius:12px;
                   ">
                   <tr>
@@ -213,12 +199,12 @@ export const sendVerificationEmail = async (
                       <p style="
                           margin:0;
                           color:#6b7280;
-                          font-size:12px;
+                          font-size:13px;
                           line-height:19px;
                           text-align:center;
                         ">
                         This verification link will expire in
-                        <strong style="color:#c2cab0;">
+                        <strong style="color:#374151;">
                           24 hours
                         </strong>.
                       </p>
@@ -238,21 +224,39 @@ export const sendVerificationEmail = async (
                   into your browser:
                 </p>
 
-                <p
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
                   style="
-                    margin:0;
-                    word-break:break-all;
-                    font-size:11px;
-                    line-height:18px;">
-                  <a
-                    href="${link}"
-                    style="
-                      color:#a3e635;
-                      text-decoration:none;
-                    ">
-                    ${link}
-                  </a>
-                </p>
+                    background-color:#f9fafb;
+                    border:1px solid #e5e7eb;
+                    border-radius:8px;
+                  ">
+                  <tr>
+                    <td
+                      style="
+                        padding:10px 12px;
+                        overflow-x:auto;
+                      ">
+                      <div style="width:100%; overflow-x:auto;">
+                        <a
+                          href="${link}"
+                          style="
+                            display:inline-block;
+                            white-space:nowrap;
+                            color:#65a30d;
+                            text-decoration:none;
+                            font-size:11px;
+                            line-height:18px;
+                          ">
+                          ${link}
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
 
               </td>
             </tr>
@@ -261,8 +265,8 @@ export const sendVerificationEmail = async (
               <td
                 style="
                   padding:24px 40px;
-                  background-color:#16181e;
-                  border-top:1px solid rgba(255,255,255,0.06);
+                  background-color:#f9fafb;
+                  border-top:1px solid #e5e7eb;
                   text-align:center;
                 ">
                 <p
@@ -278,7 +282,7 @@ export const sendVerificationEmail = async (
                 <p
                   style="
                     margin:0;
-                    color:#4b5563;
+                    color:#9ca3af;
                     font-size:11px;
                     line-height:17px;
                   ">
@@ -293,7 +297,7 @@ export const sendVerificationEmail = async (
           <p style="
               max-width:560px;
               margin:20px auto 0;
-              color:#4b5563;
+              color:#9ca3af;
               font-size:10px;
               line-height:16px;
               text-align:center;">
@@ -312,4 +316,3 @@ export const sendVerificationEmail = async (
     html
   );
 };
-
