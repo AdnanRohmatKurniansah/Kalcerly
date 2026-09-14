@@ -12,10 +12,12 @@ const WEEKLY_BARS = [
   { label: "Sel", height: 70, isVolt: true, opacity: 0.25, glow: false },
   { label: "Rab", height: 30, isVolt: true, opacity: 0.25, glow: false },
   { label: "Kam", height: 85, isVolt: true, opacity: 0.25, glow: false },
-  { label: "Jum", height: 50, isVolt: false, opacity: 0.3, glow: false },
-  { label: "Sab", height: 100, isVolt: true, opacity: 1, glow: true },
+  { label: "Jum", height: 50, isVolt: true, opacity: 0.3, glow: false },
+  { label: "Sab", height: 100, isVolt: true, opacity: 0.7, glow: true },
   { label: "Min", height: 60, isVolt: true, opacity: 0.25, glow: false },
 ];
+
+const GRID_LINES = [0, 25, 50, 75, 100];
 
 const PR_RECORDS = [
   { label: "5K Tercepat", sub: "Tercapai 12 Mei 2024", value: "23:42", color: "var(--k-volt)" },
@@ -33,7 +35,7 @@ export function Statistics() {
           <p className="text-body-lg max-w-xl text-t2">Statistik membantu kamu memahami kebiasaan, performa, dan perkembangan aktivitas dari waktu ke waktu secara terukur.</p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           {TOP_STATS.map((s) => (
             <div key={s.label} className="p-6 rounded-2xl flex flex-col bg-card border border-k">
               <span className="text-label-md uppercase text-t3">{s.label}</span>
@@ -52,13 +54,42 @@ export function Statistics() {
               </div>
               <span className="text-label-sm px-2.5 py-1 rounded-full text-volt" style={{ background: "rgba(163,230,53,0.1)" }}>+14% vs minggu lalu</span>
             </div>
-            <div className="h-54 flex items-end justify-between gap-3 pt-4 px-2" role="img" aria-label="Bar chart volume aktivitas mingguan">
-              {WEEKLY_BARS.map((b) => (
-                <div key={b.label} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full rounded-t-lg transition-all duration-300" style={{ height: `${b.height}%`, background: `rgba(${b.isVolt ? "163,230,53" : "76,215,246"},${b.opacity})`, boxShadow: b.glow ? "0 0 12px rgba(204,255,128,0.5)" : undefined }} />
-                  <span className="text-label-sm" style={{ color: b.glow ? "var(--k-volt)" : "var(--k-text-3)", fontSize: 11 }}>{b.label}</span>
-                </div>
-              ))}
+
+            <div className="relative h-54 pt-4 px-2">
+              <div className="absolute inset-0 pt-4 px-2 pointer-events-none">
+                {GRID_LINES.map((g) => (
+                  <div
+                    key={g}
+                    className="absolute left-0 right-0 border-t border-dashed"
+                    style={{
+                      bottom: `calc(${g}% + 24px)`, 
+                      borderColor: "var(--k-text-3)",
+                      opacity: 0.15,
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div className="relative h-full flex items-end justify-between gap-3 md:gap-8">
+                {WEEKLY_BARS.map((b) => (
+                  <div key={b.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                    <div
+                      className="w-full rounded-t-sm md:rounded-t-lg transition-all duration-300"
+                      style={{
+                        height: `${b.height}%`,
+                        background: `rgba(${b.isVolt ? "163,230,53" : "76,215,246"},${b.opacity})`,
+                        boxShadow: b.glow ? "0 0 12px rgba(204,255,128,0.5)" : undefined,
+                      }}
+                    />
+                    <span
+                      className="text-label-sm"
+                      style={{ color: b.glow ? "var(--k-volt)" : "var(--k-text-3)", fontSize: 11 }}
+                    >
+                      {b.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
