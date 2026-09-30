@@ -79,14 +79,14 @@ Pengguna dapat membagikan aktivitas yang telah dilakukan ke komunitas fitness Ka
 
 | Kategori | Teknologi | Deskripsi |
 | :--- | :--- | :--- |
-| **Mobile** | Flutter | Cross-platform mobile application (Android & iOS). |
+| **Mobile** | Tauri + React | Cross-platform mobile application (Android & iOS). |
 | **Backend Runtime** | NodeJs | JavaScript/TypeScript runtime yang cepat dan efisien. |
 | **Backend** | Express.js | REST API dan business logic utama. |
 | **AI** | AI/ML Model | Engine verifikasi aktivitas pengguna. |
 | **Blockchain SDK** | Viem | Interaksi dengan EVM-compatible blockchain. |
 | **Smart Contract** | Solidity | Logika reward, activity proof, dan challenge on-chain. |
 | **SC Development** | Foundry | Smart contract development & testing framework. |
-| **GPS** | Flutter Location APIs | Activity tracking dan perekaman route. |
+| **GPS** | Tauri Mobile APIs / Native APIs | Activity tracking dan perekaman route. |
 | **Wallet** | WalletConnect / Reown | Koneksi mobile wallet untuk pengguna. |
 
 ---
@@ -188,7 +188,7 @@ Pastikan Anda telah menginstal **Flutter & Dart**, **NodeJs**, **Foundry**, dan 
 
 2.  **Instal Dependensi:**
     ```bash
-    bun install
+    npm install
     ```
 
 3.  **Konfigurasi Environment:**
@@ -206,7 +206,7 @@ Pastikan Anda telah menginstal **Flutter & Dart**, **NodeJs**, **Foundry**, dan 
 
 4.  **Jalankan Development Server:**
     ```bash
-    bun --watch src/index.ts
+    npm run dev
     ```
     Backend akan berjalan dan siap menerima permintaan di **[http://localhost:8000](http://localhost:8000)**.
 
@@ -217,14 +217,14 @@ Pastikan Anda telah menginstal **Flutter & Dart**, **NodeJs**, **Foundry**, dan 
     cd frontend
     ```
 
-2.  **Instal Dependensi Flutter:**
+2.  **Instal Dependensi Tauri:**
     ```bash
-    flutter pub get
+    npm install
     ```
 
 3.  **Jalankan Aplikasi:**
     ```bash
-    flutter run
+    npm run tauri android dev
     ```
     Aplikasi akan berjalan di emulator atau perangkat fisik yang terhubung.
 
