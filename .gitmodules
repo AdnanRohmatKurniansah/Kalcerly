@@ -1,0 +1,3 @@
+[submodule "kalcerly-frontend"]
+	path = kalcerly-frontend
+	url = https://github.com/FadlanBM/kalcerly.git
